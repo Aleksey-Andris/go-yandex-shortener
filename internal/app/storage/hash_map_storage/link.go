@@ -14,8 +14,8 @@ func NewLinkStorage() *linkStorage {
 	return &linkStorage{linkMap: newLinkMap}
 }
 
-func (s *linkStorage) GetOneByShortLink(shortLink string) (domain.Link, error) {
-	link, ok := s.linkMap[shortLink]
+func (s *linkStorage) GetOneByIdent(ident string) (domain.Link, error) {
+	link, ok := s.linkMap[ident]
 	if !ok {
 		link = domain.Link{}
 		return link, errors.New("not found")
@@ -24,12 +24,12 @@ func (s *linkStorage) GetOneByShortLink(shortLink string) (domain.Link, error) {
 	}
 }
 
-func (s *linkStorage) Create(shortLink, fulLink string) (domain.Link, error) {
+func (s *linkStorage) Create(ident, fulLink string) (domain.Link, error) {
 	link := domain.Link{}
-	link.SetShortLink(shortLink)
+	link.SetIdent(ident)
 	link.SetFulLink(fulLink)
 
-	s.linkMap[shortLink] = link
+	s.linkMap[ident] = link
 
 	return link, nil
 }
