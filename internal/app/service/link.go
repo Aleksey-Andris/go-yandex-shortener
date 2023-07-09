@@ -7,7 +7,7 @@ import (
 )
 
 type LinkStorage interface {
-	GetOneByShortLink(shortLink string) (domain.Link, error)
+	GetOneByIdent(ident string) (domain.Link, error)
 	Create(shortLink, fulLink string) (domain.Link, error)
 }
 
@@ -19,26 +19,26 @@ func NewLinkService(storage LinkStorage) *linkService {
 	return &linkService{storage: storage}
 }
 
-func (s *linkService) GetShortLink(fulLink string) (string, error) {
-	shortLink := s.GenerateShortLink(fulLink)
+func (s *linkService) GetIdent(fulLink string) (string, error) {
+	ident := s.GenerateIdent(fulLink)
 
-	link, err := s.storage.GetOneByShortLink(shortLink)
+	link, err := s.storage.GetOneByIdent(ident)
 	if err != nil {
-		link, err = s.storage.Create(shortLink, fulLink)
+		link, err = s.storage.Create(ident, fulLink)
 	}
 
-	return link.ShortLink(), nil
+	return link.Ident(), nil
 }
 
-func (s *linkService) GetFulLink(shortLink string) (string, error) {
-	link, err := s.storage.GetOneByShortLink(shortLink)
+func (s *linkService) GetFulLink(ident string) (string, error) {
+	link, err := s.storage.GetOneByIdent(ident)
 	if err != nil {
 		return "", err
 	}
 	return link.FulLink(), nil
 }
 
-func (s *linkService) GenerateShortLink(fulLink string) string {
+func (s *linkService) GenerateIdent(fulLink string) string {
 	hash := md5.New()
 	hash.Write([]byte(fulLink))
 	return fmt.Sprintf("%x", hash.Sum(nil))

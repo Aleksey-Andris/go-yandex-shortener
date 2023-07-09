@@ -10,12 +10,13 @@ import (
 const (
 	ContentType          = "Content-Type"
 	ContentTypeTextPlain = "text/plain"
+	ServerURL            = "http://localhost:8080/"
 )
 
 type LinkService interface {
-	GetFulLink(shortLink string) (string, error)
-	GetShortLink(fulLink string) (string, error)
-	GenerateShortLink(fulLink string) string
+	GetFulLink(ident string) (string, error)
+	GetIdent(fulLink string) (string, error)
+	GenerateIdent(fulLink string) string
 }
 
 type linkHandler struct {
@@ -34,11 +35,6 @@ func (h *linkHandler) InitServeMux() *http.ServeMux {
 }
 
 func (h *linkHandler) GetLink(res http.ResponseWriter, req *http.Request) {
-	if strings.Split(req.Header.Get(ContentType), ";")[0] != ContentTypeTextPlain {
-		http.Error(res, "invalid Content-Type", http.StatusBadRequest)
-		return
-	}
-
 	if req.Method == http.MethodPost {
 		h.GetShortLink(res, req)
 	} else if req.Method == http.MethodGet {
@@ -50,17 +46,24 @@ func (h *linkHandler) GetLink(res http.ResponseWriter, req *http.Request) {
 }
 
 func (h *linkHandler) GetShortLink(res http.ResponseWriter, req *http.Request) {
+	if strings.Split(req.Header.Get(ContentType), ";")[0] != ContentTypeTextPlain {
+		http.Error(res, "invalid Content-Type", http.StatusBadRequest)
+		return
+	}
+
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
 		http.Error(res, "failed reading body", http.StatusBadRequest)
 		return
 	}
 
-	shortLink, err := h.service.GetShortLink(string(body))
+	ident, err := h.service.GetIdent(string(body))
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	shortLink := ServerURL + ident
 
 	res.Header().Set(ContentType, ContentTypeTextPlain)
 	res.Header().Set("Content-Length", strconv.Itoa(len(shortLink)))
