@@ -1,4 +1,4 @@
-package hash_map_storage
+package hashmapstorage
 
 import (
 	"errors"

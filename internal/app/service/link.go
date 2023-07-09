@@ -25,6 +25,9 @@ func (s *linkService) GetIdent(fulLink string) (string, error) {
 	link, err := s.storage.GetOneByIdent(ident)
 	if err != nil {
 		link, err = s.storage.Create(ident, fulLink)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	return link.Ident(), nil
