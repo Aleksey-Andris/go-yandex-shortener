@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"github.com/go-chi/chi"
 	"io"
 	"net/http"
 	"strconv"
@@ -27,22 +28,11 @@ func NewLinkHandler(service LinkService) *linkHandler {
 	return &linkHandler{service: service}
 }
 
-func (h *linkHandler) InitServeMux() *http.ServeMux {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", h.GetLink)
-
-	return mux
-}
-
-func (h *linkHandler) GetLink(res http.ResponseWriter, req *http.Request) {
-	if req.Method == http.MethodPost {
-		h.GetShortLink(res, req)
-	} else if req.Method == http.MethodGet {
-		h.GetFulLink(res, req)
-	} else {
-		http.Error(res, "invalid method", http.StatusBadRequest)
-	}
-
+func (h *linkHandler) InitRouter() *chi.Mux {
+	router := chi.NewRouter()
+	router.Post("/", h.GetShortLink)
+	router.Get("/{ident}", h.GetFulLink)
+	return router
 }
 
 func (h *linkHandler) GetShortLink(res http.ResponseWriter, req *http.Request) {
@@ -74,12 +64,11 @@ func (h *linkHandler) GetShortLink(res http.ResponseWriter, req *http.Request) {
 }
 
 func (h *linkHandler) GetFulLink(res http.ResponseWriter, req *http.Request) {
-	fulLink, err := h.service.GetFulLink(strings.Replace(req.URL.Path, "/", "", 1))
+	fulLink, err := h.service.GetFulLink(chi.URLParam(req, "ident"))
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
-
 	res.Header().Set("Location", fulLink)
 	res.WriteHeader(http.StatusTemporaryRedirect)
 }

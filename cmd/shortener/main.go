@@ -13,7 +13,7 @@ func main() {
 	linkService := service.NewLinkService(linkStorage)
 	linkHandler := handlers.NewLinkHandler(linkService)
 
-	if err := http.ListenAndServe(":8080", linkHandler.InitServeMux()); err != nil {
+	if err := http.ListenAndServe(":8080", linkHandler.InitRouter()); err != nil {
 		panic(err)
 	}
 }

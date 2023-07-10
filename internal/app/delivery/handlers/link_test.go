@@ -2,9 +2,11 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/domain"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/service"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/storage/hashmapstorage"
+	"github.com/go-chi/chi"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
@@ -80,19 +82,22 @@ func Test_linkHandler_GetFulLink(t *testing.T) {
 	tests := []struct {
 		name               string
 		requestURL         string
+		paramURL           string
 		expectedStatusCode int
 		expectedLocation   string
 	}{
 		{
 			name:               "simple case",
-			requestURL:         "/123456",
+			requestURL:         "/",
+			paramURL:           "123456",
 			expectedStatusCode: http.StatusTemporaryRedirect,
 			expectedLocation:   "https://practicum.test5.ru/",
 		},
 
 		{
 			name:               "not found case",
-			requestURL:         "/1234567",
+			requestURL:         "/",
+			paramURL:           "123457",
 			expectedStatusCode: http.StatusBadRequest,
 			expectedLocation:   "",
 		},
@@ -109,6 +114,10 @@ func Test_linkHandler_GetFulLink(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodGet, tt.requestURL, nil)
+
+			rctx := chi.NewRouteContext()
+			rctx.URLParams.Add("ident", tt.paramURL)
+			request = request.WithContext(context.WithValue(request.Context(), chi.RouteCtxKey, rctx))
 
 			rec := httptest.NewRecorder()
 			linkHandler.GetFulLink(rec, request)
