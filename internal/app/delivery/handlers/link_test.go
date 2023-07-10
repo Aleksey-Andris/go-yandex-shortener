@@ -56,7 +56,7 @@ func Test_linkHandler_GetShortLink(t *testing.T) {
 
 	linkStorage := hashmapstorage.NewLinkStorage(make(map[string]domain.Link))
 	linkService := service.NewLinkService(linkStorage)
-	linkHandler := NewLinkHandler(linkService)
+	linkHandler := NewLinkHandler(linkService, "http://localhost:8080")
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -109,7 +109,7 @@ func Test_linkHandler_GetFulLink(t *testing.T) {
 	linkMap["123456"] = link
 	linkStorage := hashmapstorage.NewLinkStorage(linkMap)
 	linkService := service.NewLinkService(linkStorage)
-	linkHandler := NewLinkHandler(linkService)
+	linkHandler := NewLinkHandler(linkService, "http://localhost:8080")
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

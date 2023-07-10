@@ -11,7 +11,6 @@ import (
 const (
 	ContentType          = "Content-Type"
 	ContentTypeTextPlain = "text/plain"
-	ServerURL            = "http://localhost:8080/"
 )
 
 type LinkService interface {
@@ -21,11 +20,14 @@ type LinkService interface {
 }
 
 type linkHandler struct {
-	service LinkService
+	service      LinkService
+	baseShortUrl string
 }
 
-func NewLinkHandler(service LinkService) *linkHandler {
-	return &linkHandler{service: service}
+func NewLinkHandler(service LinkService, baseShortUrl string) *linkHandler {
+	return &linkHandler{
+		service:      service,
+		baseShortUrl: baseShortUrl}
 }
 
 func (h *linkHandler) InitRouter() *chi.Mux {
@@ -54,7 +56,7 @@ func (h *linkHandler) GetShortLink(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	shortLink := ServerURL + ident
+	shortLink := h.baseShortUrl + "/" + ident
 
 	res.Header().Set(ContentType, ContentTypeTextPlain)
 	res.Header().Set("Content-Length", strconv.Itoa(len(shortLink)))
