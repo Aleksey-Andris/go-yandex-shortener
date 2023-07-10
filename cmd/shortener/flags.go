@@ -23,7 +23,7 @@ func initFlag() {
 		flagServAddr = envServAddr
 	}
 
-	if envBaseShortURL := os.Getenv("SERVER_ADDRESS"); envBaseShortURL != "" {
+	if envBaseShortURL := os.Getenv("BASE_URL"); envBaseShortURL != "" {
 		flagBaseShortURL = envBaseShortURL
 	}
 }
