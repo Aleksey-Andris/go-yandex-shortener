@@ -9,8 +9,8 @@ type linkStorage struct {
 	linkMap map[string]domain.Link
 }
 
-func NewLinkStorage() *linkStorage {
-	newLinkMap := make(map[string]domain.Link)
+func NewLinkStorage(linkMap map[string]domain.Link) *linkStorage {
+	newLinkMap := linkMap
 	return &linkStorage{linkMap: newLinkMap}
 }
 

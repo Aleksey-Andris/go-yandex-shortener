@@ -46,7 +46,8 @@ func (h *linkHandler) GetLink(res http.ResponseWriter, req *http.Request) {
 }
 
 func (h *linkHandler) GetShortLink(res http.ResponseWriter, req *http.Request) {
-	if strings.Split(req.Header.Get(ContentType), ";")[0] != ContentTypeTextPlain {
+	contentType := req.Header.Get(ContentType)
+	if strings.Split(contentType, ";")[0] != ContentTypeTextPlain {
 		http.Error(res, "invalid Content-Type", http.StatusBadRequest)
 		return
 	}
