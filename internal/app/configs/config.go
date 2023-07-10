@@ -4,12 +4,12 @@ var AppConfig *Config
 
 type Config struct {
 	ServAddr     string
-	BaseShortUrl string
+	BaseShortURL string
 }
 
 func InitConfig(servAddr, shortURL string) {
 	AppConfig = &Config{
 		ServAddr:     servAddr,
-		BaseShortUrl: shortURL,
+		BaseShortURL: shortURL,
 	}
 }

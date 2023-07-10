@@ -14,11 +14,11 @@ func main() {
 	initFlag()
 	flag.Parse()
 
-	configs.InitConfig(flagServAddr, flagBaseShortUrl)
+	configs.InitConfig(flagServAddr, flagBaseShortURL)
 
 	linkStorage := hashmapstorage.NewLinkStorage(make(map[string]domain.Link))
 	linkService := service.NewLinkService(linkStorage)
-	linkHandler := handlers.NewLinkHandler(linkService, flagBaseShortUrl)
+	linkHandler := handlers.NewLinkHandler(linkService, flagBaseShortURL)
 
 	if err := http.ListenAndServe(configs.AppConfig.ServAddr, linkHandler.InitRouter()); err != nil {
 		panic(err)

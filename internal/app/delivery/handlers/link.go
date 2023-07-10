@@ -21,13 +21,13 @@ type LinkService interface {
 
 type linkHandler struct {
 	service      LinkService
-	baseShortUrl string
+	baseShortURL string
 }
 
-func NewLinkHandler(service LinkService, baseShortUrl string) *linkHandler {
+func NewLinkHandler(service LinkService, baseShortURL string) *linkHandler {
 	return &linkHandler{
 		service:      service,
-		baseShortUrl: baseShortUrl}
+		baseShortURL: baseShortURL}
 }
 
 func (h *linkHandler) InitRouter() *chi.Mux {
@@ -56,7 +56,7 @@ func (h *linkHandler) GetShortLink(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	shortLink := h.baseShortUrl + "/" + ident
+	shortLink := h.baseShortURL + "/" + ident
 
 	res.Header().Set(ContentType, ContentTypeTextPlain)
 	res.Header().Set("Content-Length", strconv.Itoa(len(shortLink)))

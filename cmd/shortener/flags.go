@@ -6,15 +6,15 @@ import (
 
 var (
 	defaultServAddr     = "localhost:8080"
-	defaultBaseShortUrl = "http://localhost:8080"
+	defaultBaseShortURL = "http://localhost:8080"
 )
 
 var (
 	flagServAddr     string
-	flagBaseShortUrl string
+	flagBaseShortURL string
 )
 
 func initFlag() {
 	flag.StringVar(&flagServAddr, "a", defaultServAddr, "base server address")
-	flag.StringVar(&flagBaseShortUrl, "b", defaultBaseShortUrl, "base address short url")
+	flag.StringVar(&flagBaseShortURL, "b", defaultBaseShortURL, "base address short URL")
 }
