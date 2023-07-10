@@ -58,7 +58,7 @@ func Test_linkHandler_GetShortLink(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			request := httptest.NewRequest(http.MethodGet, tt.requestURL, bytes.NewReader(tt.requestBody))
+			request := httptest.NewRequest(http.MethodPost, tt.requestURL, bytes.NewReader(tt.requestBody))
 			request.Header.Set("Content-Type", tt.requestContentType)
 
 			rec := httptest.NewRecorder()
