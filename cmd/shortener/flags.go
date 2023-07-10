@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"os"
 )
 
 var (
@@ -17,4 +18,12 @@ var (
 func initFlag() {
 	flag.StringVar(&flagServAddr, "a", defaultServAddr, "base server address")
 	flag.StringVar(&flagBaseShortURL, "b", defaultBaseShortURL, "base address short URL")
+
+	if envServAddr := os.Getenv("SERVER_ADDRESS"); envServAddr != "" {
+		flagServAddr = envServAddr
+	}
+
+	if envBaseShortURL := os.Getenv("SERVER_ADDRESS"); envBaseShortURL != "" {
+		flagBaseShortURL = envBaseShortURL
+	}
 }
