@@ -114,6 +114,7 @@ func Test_linkHandler_GetFulLink(t *testing.T) {
 			linkHandler.GetFulLink(rec, request)
 
 			res := rec.Result()
+			defer res.Body.Close()
 
 			assert.Equal(t, res.StatusCode, tt.expectedStatusCode)
 			assert.Equal(t, res.Header.Get("Location"), tt.expectedLocation)
