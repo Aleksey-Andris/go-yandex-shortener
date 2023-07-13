@@ -7,6 +7,7 @@ import (
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/domain"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/service"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/storage/hashmapstorage"
+	"log"
 	"net/http"
 )
 
@@ -21,6 +22,6 @@ func main() {
 	linkHandler := handlers.NewLinkHandler(linkService, flagBaseShortURL)
 
 	if err := http.ListenAndServe(configs.AppConfig.ServAddr, linkHandler.InitRouter()); err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 }

@@ -1,9 +1,14 @@
 package service
 
 import (
-	"crypto/md5"
-	"fmt"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/domain"
+	"github.com/speps/go-hashids"
+	"sync/atomic"
+)
+
+var (
+	count = int32(1)
+	salt  = "Qw6"
 )
 
 type LinkStorage interface {
@@ -22,14 +27,10 @@ func NewLinkService(storage LinkStorage) *linkService {
 func (s *linkService) GetIdent(fulLink string) (string, error) {
 	ident := s.GenerateIdent(fulLink)
 
-	link, err := s.storage.GetOneByIdent(ident)
+	link, err := s.storage.Create(ident, fulLink)
 	if err != nil {
-		link, err = s.storage.Create(ident, fulLink)
-		if err != nil {
-			return "", err
-		}
+		return "", err
 	}
-
 	return link.Ident(), nil
 }
 
@@ -42,7 +43,10 @@ func (s *linkService) GetFulLink(ident string) (string, error) {
 }
 
 func (s *linkService) GenerateIdent(fulLink string) string {
-	hash := md5.New()
-	hash.Write([]byte(fulLink))
-	return fmt.Sprintf("%x", hash.Sum(nil))
+	hd := hashids.NewData()
+	hd.Salt = salt
+	h, _ := hashids.NewWithData(hd)
+	ident, _ := h.Encode([]int{int(atomic.LoadInt32(&count))})
+	atomic.AddInt32(&count, 1)
+	return ident
 }
