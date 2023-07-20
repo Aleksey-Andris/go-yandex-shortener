@@ -13,11 +13,13 @@ var (
 var (
 	flagServAddr     string
 	flagBaseShortURL string
+	flagLogLevel     string
 )
 
 func initFlag() {
 	flag.StringVar(&flagServAddr, "a", defaultServAddr, "base server address")
 	flag.StringVar(&flagBaseShortURL, "b", defaultBaseShortURL, "base address short URL")
+	flag.StringVar(&flagLogLevel, "l", "info", "log level")
 
 	if envServAddr := os.Getenv("SERVER_ADDRESS"); envServAddr != "" {
 		flagServAddr = envServAddr
