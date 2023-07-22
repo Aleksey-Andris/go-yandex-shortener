@@ -13,7 +13,7 @@ var (
 
 type LinkStorage interface {
 	GetOneByIdent(ident string) (domain.Link, error)
-	Create(shortLink, fulLink string) (domain.Link, error)
+	Create(idemt, fulLink string) (domain.Link, error)
 }
 
 type linkService struct {

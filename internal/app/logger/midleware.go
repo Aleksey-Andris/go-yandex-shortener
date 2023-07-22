@@ -40,7 +40,7 @@ func WithLogging(h http.Handler) http.Handler {
 		h.ServeHTTP(&lRes, req)
 		duration := time.Since(start)
 
-		Log.Sugar().Infoln(
+		Log().Sugar().Infoln(
 			"uri", req.RequestURI,
 			"method", req.Method,
 			"status", responseData.status,

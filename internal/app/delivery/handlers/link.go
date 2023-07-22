@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"encoding/json"
+	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/dto"
 	"github.com/go-chi/chi"
 	"io"
 	"net/http"
@@ -10,7 +12,9 @@ import (
 
 const (
 	ContentType          = "Content-Type"
+	ContentLength        = "Content-Length"
 	ContentTypeTextPlain = "text/plain"
+	ContentTypeAppJson   = "application/json"
 )
 
 type LinkService interface {
@@ -33,6 +37,7 @@ func NewLinkHandler(service LinkService, baseShortURL string) *linkHandler {
 func (h *linkHandler) InitRouter() *chi.Mux {
 	router := chi.NewRouter()
 	router.Post("/", h.GetShortLink)
+	router.Post("/api/shorten", h.GetShortLinkByJson)
 	router.Get("/{ident}", h.GetFulLink)
 	return router
 }
@@ -59,7 +64,7 @@ func (h *linkHandler) GetShortLink(res http.ResponseWriter, req *http.Request) {
 	shortLink := h.baseShortURL + "/" + ident
 
 	res.Header().Set(ContentType, ContentTypeTextPlain)
-	res.Header().Set("Content-Length", strconv.Itoa(len(shortLink)))
+	res.Header().Set(ContentLength, strconv.Itoa(len(shortLink)))
 	res.WriteHeader(http.StatusCreated)
 
 	res.Write([]byte(shortLink))
@@ -73,4 +78,32 @@ func (h *linkHandler) GetFulLink(res http.ResponseWriter, req *http.Request) {
 	}
 	res.Header().Set("Location", fulLink)
 	res.WriteHeader(http.StatusTemporaryRedirect)
+}
+
+func (h *linkHandler) GetShortLinkByJson(res http.ResponseWriter, req *http.Request) {
+	if req.Header.Get(ContentType) != ContentTypeAppJson {
+		http.Error(res, "invalid Content-Type", http.StatusBadRequest)
+		return
+	}
+
+	var request dto.LinkReq
+
+	if err := json.NewDecoder(req.Body).Decode(&request); err != nil {
+		http.Error(res, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	ident, err := h.service.GetIdent(request.Url)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusBadRequest)
+		return
+	}
+	shortLink := h.baseShortURL + "/" + ident
+
+	res.Header().Set(ContentType, ContentTypeAppJson)
+	if err := json.NewEncoder(res).Encode(&dto.LinkRes{Result: shortLink}); err != nil {
+		http.Error(res, err.Error(), http.StatusBadRequest)
+		return
+	}
+	res.WriteHeader(http.StatusOK)
 }

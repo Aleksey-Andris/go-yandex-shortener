@@ -3,12 +3,16 @@ package handlers
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/domain"
+	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/dto"
+	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/mock_service"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/service"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/storage/hashmapstorage"
 	"github.com/go-chi/chi"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -127,6 +131,92 @@ func Test_linkHandler_GetFulLink(t *testing.T) {
 
 			assert.Equal(t, res.StatusCode, tt.expectedStatusCode)
 			assert.Equal(t, res.Header.Get("Location"), tt.expectedLocation)
+		})
+	}
+}
+
+func Test_linkHandler_GetShortLinkByJson(t *testing.T) {
+	c := gomock.NewController(t)
+	defer c.Finish()
+	linkStorage := mock_service.NewMockLinkStorage(c)
+	linkService := service.NewLinkService(linkStorage)
+	linkHandler := NewLinkHandler(linkService, "http://localhost:8080")
+	testServ := httptest.NewServer(linkHandler.InitRouter())
+	defer testServ.Close()
+
+	type mocBehavior func(s *mock_service.MockLinkStorage)
+	tests := []struct {
+		name               string
+		requestURL         string
+		requestBody        string
+		requestContentType string
+		expectedStatusCode int
+		expectedErr        bool
+		mocBehavior        mocBehavior
+	}{
+		{
+			name:               "simple case (json)",
+			requestURL:         "/api/shorten",
+			requestBody:        `{"url": "https://practicum.test.ru/"}`,
+			requestContentType: "application/json",
+			expectedStatusCode: http.StatusOK,
+			expectedErr:        false,
+			mocBehavior: func(s *mock_service.MockLinkStorage) {
+				link := domain.Link{}
+				link.SetIdent("some_ident")
+				link.SetFulLink("some_link")
+				s.EXPECT().Create(gomock.Any(), gomock.Any()).Return(link, nil)
+			},
+		},
+
+		{
+			name:               "incorrect Content Type (json)",
+			requestURL:         "/api/shorten",
+			requestContentType: "application/gson",
+			requestBody:        `{"url": "https://practicum.test.ru/"}`,
+			expectedStatusCode: http.StatusBadRequest,
+			expectedErr:        true,
+			mocBehavior:        func(s *mock_service.MockLinkStorage) {},
+		},
+
+		{
+			name:               "empty Content Type (json)",
+			requestURL:         "/api/shorten",
+			requestContentType: "",
+			requestBody:        `{"url": "https://practicum.test.ru/"}`,
+			expectedStatusCode: http.StatusBadRequest,
+			expectedErr:        true,
+			mocBehavior:        func(s *mock_service.MockLinkStorage) {},
+		},
+
+		{
+			name:               "empty body",
+			requestURL:         "/api/shorten",
+			requestContentType: "application/json",
+			requestBody:        "",
+			expectedStatusCode: http.StatusBadRequest,
+			expectedErr:        true,
+			mocBehavior:        func(s *mock_service.MockLinkStorage) {},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.mocBehavior(linkStorage)
+
+			req, err := http.NewRequest(http.MethodPost, testServ.URL+tt.requestURL, bytes.NewBufferString(tt.requestBody))
+			require.NoError(t, err)
+			req.Header.Set("Content-Type", tt.requestContentType)
+
+			res, err := testServ.Client().Do(req)
+			require.NoError(t, err)
+			defer res.Body.Close()
+
+			assert.Equal(t, res.StatusCode, tt.expectedStatusCode)
+			if !tt.expectedErr {
+				err = json.NewDecoder(res.Body).Decode(&dto.LinkRes{})
+				require.NoError(t, err)
+			}
 		})
 	}
 }
