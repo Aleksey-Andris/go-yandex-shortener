@@ -14,7 +14,7 @@ const (
 	ContentType          = "Content-Type"
 	ContentLength        = "Content-Length"
 	ContentTypeTextPlain = "text/plain"
-	ContentTypeAppJson   = "application/json"
+	ContentTypeAppJSON   = "application/json"
 )
 
 type LinkService interface {
@@ -37,7 +37,7 @@ func NewLinkHandler(service LinkService, baseShortURL string) *linkHandler {
 func (h *linkHandler) InitRouter() *chi.Mux {
 	router := chi.NewRouter()
 	router.Post("/", h.GetShortLink)
-	router.Post("/api/shorten", h.GetShortLinkByJson)
+	router.Post("/api/shorten", h.GetShortLinkByJSON)
 	router.Get("/{ident}", h.GetFulLink)
 	return router
 }
@@ -80,8 +80,8 @@ func (h *linkHandler) GetFulLink(res http.ResponseWriter, req *http.Request) {
 	res.WriteHeader(http.StatusTemporaryRedirect)
 }
 
-func (h *linkHandler) GetShortLinkByJson(res http.ResponseWriter, req *http.Request) {
-	if req.Header.Get(ContentType) != ContentTypeAppJson {
+func (h *linkHandler) GetShortLinkByJSON(res http.ResponseWriter, req *http.Request) {
+	if req.Header.Get(ContentType) != ContentTypeAppJSON {
 		http.Error(res, "invalid Content-Type", http.StatusBadRequest)
 		return
 	}
@@ -100,7 +100,7 @@ func (h *linkHandler) GetShortLinkByJson(res http.ResponseWriter, req *http.Requ
 	}
 	shortLink := h.baseShortURL + "/" + ident
 
-	res.Header().Set(ContentType, ContentTypeAppJson)
+	res.Header().Set(ContentType, ContentTypeAppJSON)
 	res.WriteHeader(http.StatusCreated)
 	if err := json.NewEncoder(res).Encode(&dto.LinkRes{Result: shortLink}); err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
