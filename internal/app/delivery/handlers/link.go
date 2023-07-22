@@ -93,7 +93,7 @@ func (h *linkHandler) GetShortLinkByJson(res http.ResponseWriter, req *http.Requ
 		return
 	}
 
-	ident, err := h.service.GetIdent(request.Url)
+	ident, err := h.service.GetIdent(request.URL)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
@@ -101,9 +101,9 @@ func (h *linkHandler) GetShortLinkByJson(res http.ResponseWriter, req *http.Requ
 	shortLink := h.baseShortURL + "/" + ident
 
 	res.Header().Set(ContentType, ContentTypeAppJson)
+	res.WriteHeader(http.StatusCreated)
 	if err := json.NewEncoder(res).Encode(&dto.LinkRes{Result: shortLink}); err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
-	res.WriteHeader(http.StatusOK)
 }

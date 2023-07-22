@@ -1,7 +1,7 @@
 package dto
 
 type LinkReq struct {
-	Url string `json:"url"`
+	URL string `json:"url"`
 }
 
 type LinkRes struct {

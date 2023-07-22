@@ -159,7 +159,7 @@ func Test_linkHandler_GetShortLinkByJson(t *testing.T) {
 			requestURL:         "/api/shorten",
 			requestBody:        `{"url": "https://practicum.test.ru/"}`,
 			requestContentType: "application/json",
-			expectedStatusCode: http.StatusOK,
+			expectedStatusCode: http.StatusCreated,
 			expectedErr:        false,
 			mocBehavior: func(s *mock_service.MockLinkStorage) {
 				link := domain.Link{}
@@ -212,7 +212,7 @@ func Test_linkHandler_GetShortLinkByJson(t *testing.T) {
 			require.NoError(t, err)
 			defer res.Body.Close()
 
-			assert.Equal(t, res.StatusCode, tt.expectedStatusCode)
+			assert.Equal(t, tt.expectedStatusCode, res.StatusCode)
 			if !tt.expectedErr {
 				err = json.NewDecoder(res.Body).Decode(&dto.LinkRes{})
 				require.NoError(t, err)
