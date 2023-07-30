@@ -28,7 +28,7 @@ func run() error {
 	linkStorage := hashmapstorage.NewLinkStorage(make(map[string]domain.Link))
 	linkService := service.NewLinkService(linkStorage)
 	linkHandler := handlers.NewLinkHandler(linkService, flagBaseShortURL)
-	if err := http.ListenAndServe(configs.AppConfig.ServAddr, logger.WithLogging(linkHandler.InitRouter())); err != nil {
+	if err := http.ListenAndServe(configs.AppConfig.ServAddr, linkHandler.InitRouter()); err != nil {
 		return err
 	}
 	return nil

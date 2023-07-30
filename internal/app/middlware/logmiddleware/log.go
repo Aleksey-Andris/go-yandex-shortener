@@ -1,8 +1,10 @@
-package logger
+package logmiddleware
 
 import (
 	"net/http"
 	"time"
+
+	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/logger"
 )
 
 type responseData struct {
@@ -40,7 +42,7 @@ func WithLogging(h http.Handler) http.Handler {
 		h.ServeHTTP(&lRes, req)
 		duration := time.Since(start)
 
-		Log().Sugar().Infoln(
+		logger.Log().Sugar().Infoln(
 			"uri", req.RequestURI,
 			"method", req.Method,
 			"status", responseData.status,

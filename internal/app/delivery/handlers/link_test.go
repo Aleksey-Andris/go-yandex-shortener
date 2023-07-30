@@ -2,8 +2,15 @@ package handlers
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/domain"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/dto"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/mock_service"
@@ -13,10 +20,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
-	"io"
-	"net/http"
-	"net/http/httptest"
-	"testing"
 )
 
 func Test_linkHandler_GetShortLink(t *testing.T) {
@@ -207,6 +210,34 @@ func Test_linkHandler_GetShortLinkByJson(t *testing.T) {
 			req, err := http.NewRequest(http.MethodPost, testServ.URL+tt.requestURL, bytes.NewBufferString(tt.requestBody))
 			require.NoError(t, err)
 			req.Header.Set("Content-Type", tt.requestContentType)
+
+			res, err := testServ.Client().Do(req)
+			require.NoError(t, err)
+			defer res.Body.Close()
+
+			assert.Equal(t, tt.expectedStatusCode, res.StatusCode)
+			if !tt.expectedErr {
+				err = json.NewDecoder(res.Body).Decode(&dto.LinkRes{})
+				require.NoError(t, err)
+			}
+		})
+	}
+
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("%s with gzip", tt.name), func(t *testing.T) {
+			tt.mocBehavior(linkStorage)
+
+			buf := bytes.NewBuffer(nil)
+			zb := gzip.NewWriter(buf)
+			_, err := zb.Write([]byte(tt.requestBody))
+			require.NoError(t, err)
+			err = zb.Close()
+			require.NoError(t, err)
+
+			req, err := http.NewRequest(http.MethodPost, testServ.URL+tt.requestURL, buf)
+			require.NoError(t, err)
+			req.Header.Set("Content-Type", tt.requestContentType)
+			req.Header.Set("Content-Encoding", "gzip")
 
 			res, err := testServ.Client().Do(req)
 			require.NoError(t, err)
