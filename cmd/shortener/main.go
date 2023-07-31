@@ -16,20 +16,25 @@ func main() {
 	initFlag()
 	flag.Parse()
 	configs.InitConfig(flagServAddr, flagBaseShortURL)
-	if err := run(); err != nil {
+
+	if err := logger.Initialize(flagLogLevel); err != nil {
 		log.Fatal(err)
 	}
-}
 
-func run() error {
-	if err := logger.Initialize(flagLogLevel); err != nil {
-		return err
+	linkStorage, err := hashmapstorage.NewLinkStorage(make(map[string]domain.Link), flagFileStoragePath)
+	if err != nil {
+		log.Fatal(err)
 	}
-	linkStorage := hashmapstorage.NewLinkStorage(make(map[string]domain.Link))
-	linkService := service.NewLinkService(linkStorage)
+	defer func(){
+		if err := linkStorage.Close(); err != nil {
+			log.Fatal(err)
+		}
+	}()
+	
+	linkService := service.NewLinkService(linkStorage, linkStorage.GetSequense())
 	linkHandler := handlers.NewLinkHandler(linkService, flagBaseShortURL)
+
 	if err := http.ListenAndServe(configs.AppConfig.ServAddr, linkHandler.InitRouter()); err != nil {
-		return err
+		log.Fatal(err)
 	}
-	return nil
 }

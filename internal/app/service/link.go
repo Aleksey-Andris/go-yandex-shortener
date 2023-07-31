@@ -7,8 +7,7 @@ import (
 )
 
 var (
-	count = int32(1)
-	salt  = "Qw6"
+	salt = "Qw6"
 )
 
 type LinkStorage interface {
@@ -18,10 +17,14 @@ type LinkStorage interface {
 
 type linkService struct {
 	storage LinkStorage
+	count   int32
 }
 
-func NewLinkService(storage LinkStorage) *linkService {
-	return &linkService{storage: storage}
+func NewLinkService(storage LinkStorage, count int32) *linkService {
+	return &linkService{
+		storage: storage,
+		count:   count,
+	}
 }
 
 func (s *linkService) GetIdent(fulLink string) (string, error) {
@@ -31,7 +34,7 @@ func (s *linkService) GetIdent(fulLink string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return link.Ident(), nil
+	return link.Ident, nil
 }
 
 func (s *linkService) GetFulLink(ident string) (string, error) {
@@ -39,14 +42,14 @@ func (s *linkService) GetFulLink(ident string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return link.FulLink(), nil
+	return link.FulLink, nil
 }
 
 func (s *linkService) GenerateIdent(fulLink string) string {
 	hd := hashids.NewData()
 	hd.Salt = salt
 	h, _ := hashids.NewWithData(hd)
-	ident, _ := h.Encode([]int{int(atomic.LoadInt32(&count))})
-	atomic.AddInt32(&count, 1)
+	ident, _ := h.Encode([]int{int(atomic.LoadInt32(&s.count))})
+	atomic.AddInt32(&s.count, 1)
 	return ident
 }
