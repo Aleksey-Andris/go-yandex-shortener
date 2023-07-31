@@ -61,8 +61,8 @@ func Test_linkHandler_GetShortLink(t *testing.T) {
 		},
 	}
 
-	linkStorage := hashmapstorage.NewLinkStorage(make(map[string]domain.Link))
-	linkService := service.NewLinkService(linkStorage)
+	linkStorage, _ := hashmapstorage.NewLinkStorage(make(map[string]domain.Link), "")
+	linkService := service.NewLinkService(linkStorage, 1)
 	linkHandler := NewLinkHandler(linkService, "http://localhost:8080")
 
 	for _, tt := range tests {
@@ -110,12 +110,14 @@ func Test_linkHandler_GetFulLink(t *testing.T) {
 		},
 	}
 	linkMap := make(map[string]domain.Link)
-	link := domain.Link{}
-	link.SetIdent("123456")
-	link.SetFulLink("https://practicum.test5.ru/")
-	linkMap["123456"] = link
-	linkStorage := hashmapstorage.NewLinkStorage(linkMap)
-	linkService := service.NewLinkService(linkStorage)
+	link := domain.Link{
+		ID: 1,
+		Ident: "123456",
+		FulLink: "https://practicum.test5.ru/",
+	}
+	linkMap[link.Ident] = link
+	linkStorage, _ := hashmapstorage.NewLinkStorage(linkMap, "")
+	linkService := service.NewLinkService(linkStorage, 1)
 	linkHandler := NewLinkHandler(linkService, "http://localhost:8080")
 
 	for _, tt := range tests {
@@ -142,7 +144,7 @@ func Test_linkHandler_GetShortLinkByJson(t *testing.T) {
 	c := gomock.NewController(t)
 	defer c.Finish()
 	linkStorage := mock_service.NewMockLinkStorage(c)
-	linkService := service.NewLinkService(linkStorage)
+	linkService := service.NewLinkService(linkStorage, 1)
 	linkHandler := NewLinkHandler(linkService, "http://localhost:8080")
 	testServ := httptest.NewServer(linkHandler.InitRouter())
 	defer testServ.Close()
@@ -165,9 +167,11 @@ func Test_linkHandler_GetShortLinkByJson(t *testing.T) {
 			expectedStatusCode: http.StatusCreated,
 			expectedErr:        false,
 			mocBehavior: func(s *mock_service.MockLinkStorage) {
-				link := domain.Link{}
-				link.SetIdent("some_ident")
-				link.SetFulLink("some_link")
+				link := domain.Link{
+					ID: 1,
+					Ident: "some_ident",
+					FulLink: "some_link",
+				}
 				s.EXPECT().Create(gomock.Any(), gomock.Any()).Return(link, nil)
 			},
 		},
