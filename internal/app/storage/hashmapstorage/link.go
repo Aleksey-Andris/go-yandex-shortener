@@ -3,9 +3,11 @@ package hashmapstorage
 import (
 	"encoding/json"
 	"errors"
-	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/domain"
+	"io"
 	"os"
 	"sync"
+
+	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/domain"
 )
 
 type linkStorage struct {
@@ -65,8 +67,6 @@ func (s *linkStorage) Create(ident, fulLink string) (domain.Link, error) {
 }
 
 func (s *linkStorage) loadFromFile() error {
-	s.Lock()
-	defer s.Unlock()
 	data, err := os.OpenFile(s.filePath, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
 	if err != nil {
 		return err
@@ -78,7 +78,10 @@ func (s *linkStorage) loadFromFile() error {
 	for {
 		err = s.decoder.Decode(&link)
 		if err != nil {
-			break
+			if err == io.EOF {
+				break
+			}
+			return err
 		}
 		s.linkMap[link.Ident] = link
 		if link.ID > s.sequenceID {
