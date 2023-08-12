@@ -13,7 +13,7 @@ import (
 
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/domain"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/dto"
-	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/mock_service"
+	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/mock/mock_service"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/service"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/storage/hashmapstorage"
 	"github.com/go-chi/chi"

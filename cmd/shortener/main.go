@@ -2,14 +2,16 @@ package main
 
 import (
 	"flag"
+	"log"
+	"net/http"
+
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/configs"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/delivery/handlers"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/domain"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/logger"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/service"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/storage/hashmapstorage"
-	"log"
-	"net/http"
+	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/storage/postgresstorage"
 )
 
 func main() {
@@ -20,6 +22,12 @@ func main() {
 	if err := logger.Initialize(flagLogLevel); err != nil {
 		log.Fatal(err)
 	}
+
+	db, err := postgresstorage.NewPostgresDB(flagConfigDB)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
 
 	linkStorage, err := hashmapstorage.NewLinkStorage(make(map[string]domain.Link), flagFileStoragePath)
 	if err != nil {
@@ -32,7 +40,7 @@ func main() {
 	}()
 	
 	linkService := service.NewLinkService(linkStorage, linkStorage.GetSequense())
-	linkHandler := handlers.NewLinkHandler(linkService, flagBaseShortURL)
+	linkHandler := handlers.NewLinkHandler(linkService, flagBaseShortURL, db)
 
 	if err := http.ListenAndServe(configs.AppConfig.ServAddr, linkHandler.InitRouter()); err != nil {
 		log.Fatal(err)
