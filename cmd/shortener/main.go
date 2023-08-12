@@ -23,12 +23,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	db, err := postgresstorage.NewPostgresDB(flagConfigDB)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
 	linkStorage, err := hashmapstorage.NewLinkStorage(make(map[string]domain.Link), flagFileStoragePath)
 	if err != nil {
 		log.Fatal(err)
@@ -40,9 +34,23 @@ func main() {
 	}()
 	
 	linkService := service.NewLinkService(linkStorage, linkStorage.GetSequense())
-	linkHandler := handlers.NewLinkHandler(linkService, flagBaseShortURL, db)
+	linkHandler := handlers.NewLinkHandler(linkService, flagBaseShortURL)
 
-	if err := http.ListenAndServe(configs.AppConfig.ServAddr, linkHandler.InitRouter()); err != nil {
+	db, err := postgresstorage.NewPostgresDB(flagConfigDB)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	router := linkHandler.InitRouter()
+	router.Get("/ping", http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		if err := db.Ping(); err != nil {
+			res.WriteHeader(http.StatusInternalServerError)
+		}
+		res.WriteHeader(http.StatusOK)
+	}))
+
+	if err := http.ListenAndServe(configs.AppConfig.ServAddr, router); err != nil {
 		log.Fatal(err)
 	}
 }

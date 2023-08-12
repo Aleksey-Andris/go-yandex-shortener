@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"database/sql"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -30,14 +29,12 @@ type LinkService interface {
 type linkHandler struct {
 	service      LinkService
 	baseShortURL string
-	db           *sql.DB
 }
 
-func NewLinkHandler(service LinkService, baseShortURL string, db *sql.DB) *linkHandler {
+func NewLinkHandler(service LinkService, baseShortURL string) *linkHandler {
 	return &linkHandler{
 		service:      service,
 		baseShortURL: baseShortURL,
-		db:           db,
 	}
 }
 
@@ -49,15 +46,7 @@ func (h *linkHandler) InitRouter() *chi.Mux {
 	router.Post("/", h.GetShortLink)
 	router.Post("/api/shorten", h.GetShortLinkByJSON)
 	router.Get("/{ident}", h.GetFulLink)
-	router.Get("/ping", h.PingDB)
 	return router
-}
-
-func (h *linkHandler) PingDB(res http.ResponseWriter, req *http.Request) {
-	if err := h.db.Ping(); err != nil {
-		res.WriteHeader(http.StatusInternalServerError)
-	}
-	res.WriteHeader(http.StatusOK)
 }
 
 func (h *linkHandler) GetShortLink(res http.ResponseWriter, req *http.Request) {
