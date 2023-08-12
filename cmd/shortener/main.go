@@ -38,14 +38,19 @@ func main() {
 
 	db, err := postgresstorage.NewPostgresDB(flagConfigDB)
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 	}
 	defer db.Close()
 
 	router := linkHandler.InitRouter()
 	router.Get("/ping", http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		if err := db.Ping(); err != nil {
+		if db == nil {
 			res.WriteHeader(http.StatusInternalServerError)
+			return
+		} 
+	    if err := db.Ping(); err != nil {
+			res.WriteHeader(http.StatusInternalServerError)
+			return
 		}
 		res.WriteHeader(http.StatusOK)
 	}))
