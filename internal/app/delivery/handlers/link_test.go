@@ -13,7 +13,7 @@ import (
 
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/domain"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/dto"
-	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/mock/mock_service"
+	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/mock/mockservice"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/service"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/storage/hashmapstorage"
 	"github.com/go-chi/chi"
@@ -143,13 +143,13 @@ func Test_linkHandler_GetFulLink(t *testing.T) {
 func Test_linkHandler_GetShortLinkByJson(t *testing.T) {
 	c := gomock.NewController(t)
 	defer c.Finish()
-	linkStorage := mock_service.NewMockLinkStorage(c)
+	linkStorage := mockservice.NewMockLinkStorage(c)
 	linkService := service.NewLinkService(linkStorage, 1)
 	linkHandler := NewLinkHandler(linkService, "http://localhost:8080")
 	testServ := httptest.NewServer(linkHandler.InitRouter())
 	defer testServ.Close()
 
-	type mocBehavior func(s *mock_service.MockLinkStorage)
+	type mocBehavior func(s *mockservice.MockLinkStorage)
 	tests := []struct {
 		name               string
 		requestURL         string
@@ -166,7 +166,7 @@ func Test_linkHandler_GetShortLinkByJson(t *testing.T) {
 			requestContentType: "application/json",
 			expectedStatusCode: http.StatusCreated,
 			expectedErr:        false,
-			mocBehavior: func(s *mock_service.MockLinkStorage) {
+			mocBehavior: func(s *mockservice.MockLinkStorage) {
 				link := domain.Link{
 					ID: 1,
 					Ident: "some_ident",
@@ -183,7 +183,7 @@ func Test_linkHandler_GetShortLinkByJson(t *testing.T) {
 			requestBody:        `{"url": "https://practicum.test.ru/"}`,
 			expectedStatusCode: http.StatusBadRequest,
 			expectedErr:        true,
-			mocBehavior:        func(s *mock_service.MockLinkStorage) {},
+			mocBehavior:        func(s *mockservice.MockLinkStorage) {},
 		},
 
 		{
@@ -193,7 +193,7 @@ func Test_linkHandler_GetShortLinkByJson(t *testing.T) {
 			requestBody:        `{"url": "https://practicum.test.ru/"}`,
 			expectedStatusCode: http.StatusBadRequest,
 			expectedErr:        true,
-			mocBehavior:        func(s *mock_service.MockLinkStorage) {},
+			mocBehavior:        func(s *mockservice.MockLinkStorage) {},
 		},
 
 		{
@@ -203,7 +203,7 @@ func Test_linkHandler_GetShortLinkByJson(t *testing.T) {
 			requestBody:        "",
 			expectedStatusCode: http.StatusBadRequest,
 			expectedErr:        true,
-			mocBehavior:        func(s *mock_service.MockLinkStorage) {},
+			mocBehavior:        func(s *mockservice.MockLinkStorage) {},
 		},
 	}
 
