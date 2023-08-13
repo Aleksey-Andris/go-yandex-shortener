@@ -13,17 +13,19 @@ var (
 type LinkStorage interface {
 	GetOneByIdent(ident string) (domain.Link, error)
 	Create(idemt, fulLink string) (domain.Link, error)
+	Close() error
+	GetMaxID() (int32, error)
 }
 
 type linkService struct {
-	storage LinkStorage
-	count   int32
+	storage   LinkStorage
+	nextCount int32
 }
 
-func NewLinkService(storage LinkStorage, count int32) *linkService {
+func NewLinkService(storage LinkStorage, nextCount int32) *linkService {
 	return &linkService{
-		storage: storage,
-		count:   count,
+		storage:   storage,
+		nextCount: nextCount,
 	}
 }
 
@@ -49,7 +51,7 @@ func (s *linkService) GenerateIdent(fulLink string) string {
 	hd := hashids.NewData()
 	hd.Salt = salt
 	h, _ := hashids.NewWithData(hd)
-	ident, _ := h.Encode([]int{int(atomic.LoadInt32(&s.count))})
-	atomic.AddInt32(&s.count, 1)
+	ident, _ := h.Encode([]int{int(atomic.LoadInt32(&s.nextCount))})
+	atomic.AddInt32(&s.nextCount, 1)
 	return ident
 }

@@ -67,12 +67,13 @@ func (s *linkStorage) Create(ident, fulLink string) (domain.Link, error) {
 }
 
 func (s *linkStorage) loadFromFile() error {
-	data, err := os.OpenFile(s.filePath, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
+	var err error
+	s.file, err = os.OpenFile(s.filePath, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
 	if err != nil {
 		return err
 	}
-	s.decoder = json.NewDecoder(data)
-	s.encoder = json.NewEncoder(data)
+	s.decoder = json.NewDecoder(s.file)
+	s.encoder = json.NewEncoder(s.file)
 
 	var link domain.Link
 	for {
@@ -92,11 +93,14 @@ func (s *linkStorage) loadFromFile() error {
 }
 
 func (s *linkStorage) Close() error {
+	if s.file == nil {
+		return nil
+	}
 	return s.file.Close()
 }
 
-func (s *linkStorage) GetSequense() int32 {
+func (s *linkStorage) GetMaxID() (int32, error) {
 	s.Lock()
 	defer s.Unlock()
-	return s.sequenceID
+	return s.sequenceID, nil
 }

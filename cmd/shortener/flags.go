@@ -10,7 +10,7 @@ var (
 	defaultBaseShortURL        = "http://localhost:8080"
 	defaultLogLevel            = "info"
 	defaitflagFileStoragePath  = "/tmp/short-url-db.json"
-	defaultFlagFileStoragePath = "host=localhost port=5432 user=postgres password=shortener dbname=postgres sslmode=disable"
+	defaultFlagFileStoragePath = ""
 )
 
 var (
