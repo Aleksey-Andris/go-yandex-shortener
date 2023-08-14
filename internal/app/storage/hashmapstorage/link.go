@@ -70,15 +70,10 @@ func (s *linkStorage) CreateLinks(links []domain.Link) error {
 	s.Lock()
 	defer s.Unlock()
 	if s.record {
-		data, err := json.Marshal(&links)
-		if err != nil {
-			if err == io.EOF {
+		for _, v := range links {
+			if err := s.encoder.Encode(&v); err != nil {
 				return err
 			}
-		}
-		_, err = s.file.Write(data)
-		if err != nil {
-			return err
 		}
 	}
 	for _, v := range links {
