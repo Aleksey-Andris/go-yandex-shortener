@@ -1,5 +1,6 @@
 package mockservice
 
+
 import (
 	reflect "reflect"
 
@@ -57,6 +58,20 @@ func (m *MockLinkStorage) Create(idemt, fulLink string) (domain.Link, error) {
 func (mr *MockLinkStorageMockRecorder) Create(idemt, fulLink interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockLinkStorage)(nil).Create), idemt, fulLink)
+}
+
+// CreateLinks mocks base method.
+func (m *MockLinkStorage) CreateLinks(links []domain.Link) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateLinks", links)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateLinks indicates an expected call of CreateLinks.
+func (mr *MockLinkStorageMockRecorder) CreateLinks(links interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateLinks", reflect.TypeOf((*MockLinkStorage)(nil).CreateLinks), links)
 }
 
 // GetMaxID mocks base method.

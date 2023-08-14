@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -23,6 +24,7 @@ const (
 type LinkService interface {
 	GetFulLink(ident string) (string, error)
 	GetIdent(fulLink string) (string, error)
+	GetIdents(linkReq []dto.LinkListReq) ([]dto.LinkListRes, error)
 	GenerateIdent(fulLink string) string
 }
 
@@ -45,6 +47,7 @@ func (h *linkHandler) InitRouter() *chi.Mux {
 	router.Use(middleware.Compress(5, "application/json", "text/html"))
 	router.Post("/", h.GetShortLink)
 	router.Post("/api/shorten", h.GetShortLinkByJSON)
+	router.Post("/api/shorten/batch", h.GetShortLinkByListJSON)
 	router.Get("/{ident}", h.GetFulLink)
 	return router
 }
@@ -113,4 +116,41 @@ func (h *linkHandler) GetShortLinkByJSON(res http.ResponseWriter, req *http.Requ
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
+}
+
+func (h *linkHandler) GetShortLinkByListJSON(res http.ResponseWriter, req *http.Request) {
+	ct := req.Header.Get(сontentType)
+	if !(ct == сontentTypeAppJSON || ct == сontentTypeAppXGZIP) {
+		http.Error(res, "invalid Content-Type", http.StatusBadRequest)
+		return
+	}
+
+	var buf bytes.Buffer
+	var linkReq []dto.LinkListReq
+	_, err := buf.ReadFrom(req.Body)
+	if err != nil {
+		http.Error(res, "invalid body", http.StatusBadRequest)
+		return
+	}
+
+	if err = json.Unmarshal(buf.Bytes(), &linkReq); err != nil {
+		http.Error(res, "invalid format body", http.StatusBadRequest)
+		return
+	}
+
+	limkResp, err := h.service.GetIdents(linkReq)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	response, err := json.Marshal(&limkResp)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	res.Header().Set("Content-Type", "application/json")
+	res.WriteHeader(http.StatusCreated)
+	res.Write(response)
 }

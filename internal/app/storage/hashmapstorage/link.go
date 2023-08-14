@@ -66,6 +66,28 @@ func (s *linkStorage) Create(ident, fulLink string) (domain.Link, error) {
 	return link, nil
 }
 
+func (s *linkStorage) CreateLinks(links []domain.Link) error {
+	s.Lock()
+	defer s.Unlock()
+	if s.record {
+		data, err := json.Marshal(&links)
+		if err != nil {
+			if err == io.EOF {
+				return err
+			}
+		}
+		_, err = s.file.Write(data)
+		if err != nil {
+			return err
+		}
+	}
+	for _, v := range links {
+		s.linkMap[v.Ident] = v
+	}
+	s.sequenceID = s.sequenceID + (int32)(len(links))
+	return nil
+}
+
 func (s *linkStorage) loadFromFile() error {
 	var err error
 	s.file, err = os.OpenFile(s.filePath, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
@@ -89,6 +111,7 @@ func (s *linkStorage) loadFromFile() error {
 			s.sequenceID = link.ID
 		}
 	}
+	s.sequenceID++
 	return nil
 }
 

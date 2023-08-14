@@ -1,9 +1,11 @@
 package service
 
 import (
-	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/domain"
-	"github.com/speps/go-hashids"
 	"sync/atomic"
+
+	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/domain"
+	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/dto"
+	"github.com/speps/go-hashids"
 )
 
 var (
@@ -13,6 +15,7 @@ var (
 type LinkStorage interface {
 	GetOneByIdent(ident string) (domain.Link, error)
 	Create(idemt, fulLink string) (domain.Link, error)
+	CreateLinks(links []domain.Link) error
 	Close() error
 	GetMaxID() (int32, error)
 }
@@ -37,6 +40,20 @@ func (s *linkService) GetIdent(fulLink string) (string, error) {
 		return "", err
 	}
 	return link.Ident, nil
+}
+
+func (s *linkService) GetIdents(linkReq []dto.LinkListReq) ([]dto.LinkListRes, error) {
+	result := make([]dto.LinkListRes, 0)
+	links := make([]domain.Link, 0)
+	for _, v := range linkReq {
+		ident := s.GenerateIdent(v.OriginalURL)
+		result = append(result, dto.LinkListRes{CorrelationID: v.CorrelationID, ShortURL: ident})
+		links = append(links, domain.Link{Ident: ident, FulLink: v.OriginalURL})
+	}
+	if err := s.storage.CreateLinks(links); err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 func (s *linkService) GetFulLink(ident string) (string, error) {

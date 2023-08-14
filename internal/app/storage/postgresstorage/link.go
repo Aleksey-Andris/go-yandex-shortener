@@ -31,6 +31,31 @@ func (s *linkStorage) Create(ident, fulLink string) (domain.Link, error) {
 	return link, err
 }
 
+func (s *linkStorage) CreateLinks(links []domain.Link) error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	query := fmt.Sprintf("INSERT INTO %s (%s, %s) VALUES($1, $2) RETURNING id, %s, %s;",
+		linkTable, shortURL, originalURL, shortURL, originalURL)
+	stm, err := s.db.Prepare(query)
+	if err != nil {
+		return err
+	}
+	for _, v := range links {
+		_, err := stm.Exec(v.Ident, v.FulLink)
+		if err != nil {
+			return err
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *linkStorage) Close() error {
 	return s.db.Close()
 }
