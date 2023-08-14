@@ -38,8 +38,8 @@ func (s *linkStorage) CreateLinks(links []domain.Link) error {
 	}
 	defer tx.Rollback()
 
-	query := fmt.Sprintf("INSERT INTO %s (%s, %s) VALUES($1, $2) RETURNING id, %s, %s;",
-		linkTable, shortURL, originalURL, shortURL, originalURL)
+	query := fmt.Sprintf("INSERT INTO %s (%s, %s) VALUES($1, $2);",
+		linkTable, shortURL, originalURL)
 	stm, err := s.db.Prepare(query)
 	if err != nil {
 		return err

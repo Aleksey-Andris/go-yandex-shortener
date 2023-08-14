@@ -143,6 +143,9 @@ func (h *linkHandler) GetShortLinkByListJSON(res http.ResponseWriter, req *http.
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	for i, v := range limkResp {
+		limkResp[i].ShortURL = h.baseShortURL + "/" + v.ShortURL
+	}
 
 	response, err := json.Marshal(&limkResp)
 	if err != nil {
