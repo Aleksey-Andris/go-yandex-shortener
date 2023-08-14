@@ -25,7 +25,7 @@ func NewLinkStorage(linkMap map[string]domain.Link, filePath string) (*linkStora
 
 	storage := &linkStorage{
 		linkMap:    linkMap,
-		sequenceID: 1,
+		sequenceID: 0,
 		record:     filePath != "",
 		filePath:   filePath,
 	}
@@ -106,7 +106,6 @@ func (s *linkStorage) loadFromFile() error {
 			s.sequenceID = link.ID
 		}
 	}
-	s.sequenceID++
 	return nil
 }
 

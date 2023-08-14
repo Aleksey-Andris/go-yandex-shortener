@@ -62,7 +62,7 @@ func (s *linkStorage) Close() error {
 
 func (s *linkStorage) GetMaxID() (int32, error) {
 	var maxID int32
-	query := fmt.Sprintf("SELECT COALESCE(MAX(id), 1) FROM %s;", linkTable)
+	query := fmt.Sprintf("SELECT COALESCE(MAX(id), 0) FROM %s;", linkTable)
 	row := s.db.QueryRow(query)
 	if err := row.Scan(&maxID); err != nil {
 		return 0, err

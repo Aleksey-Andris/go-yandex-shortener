@@ -273,6 +273,7 @@ func Test_linkHandler_GetShortLinkByListJSON(t *testing.T) {
 		requestContentType string
 		expectedStatusCode int
 		expectedErr        bool
+		expectedListSize   int
 		mocBehavior        mocBehavior
 	}{
 		{
@@ -282,6 +283,7 @@ func Test_linkHandler_GetShortLinkByListJSON(t *testing.T) {
 			requestContentType: "application/json",
 			expectedStatusCode: http.StatusCreated,
 			expectedErr:        false,
+			expectedListSize:    2,
 			mocBehavior: func(s *mockservice.MockLinkStorage) {
 				s.EXPECT().CreateLinks(gomock.Any()).Return(nil)
 			},
@@ -364,6 +366,8 @@ func Test_linkHandler_GetShortLinkByListJSON(t *testing.T) {
 
 				err = json.Unmarshal(buf.Bytes(), &linkReq)
 				require.NoError(t, err)
+
+				assert.True(t, tt.expectedListSize == len(linkReq))
 			}
 		})
 	}

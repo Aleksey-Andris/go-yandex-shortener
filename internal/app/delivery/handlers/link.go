@@ -150,7 +150,7 @@ func (h *linkHandler) GetShortLinkByListJSON(res http.ResponseWriter, req *http.
 		return
 	}
 
-	res.Header().Set("Content-Type", "application/json")
+	res.Header().Set(сontentType, сontentTypeAppJSON)
 	res.WriteHeader(http.StatusCreated)
 	res.Write(response)
 }
