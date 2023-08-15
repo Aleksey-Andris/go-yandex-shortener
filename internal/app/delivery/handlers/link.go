@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -10,6 +11,7 @@ import (
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/dto"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/middlware/gzipmiddleware"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/middlware/logmiddleware"
+	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/storage/postgresstorage"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 )
@@ -65,17 +67,21 @@ func (h *linkHandler) GetShortLink(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	var status int
 	ident, err := h.service.GetIdent(string(body))
 	if err != nil {
-		http.Error(res, err.Error(), http.StatusBadRequest)
-		return
+		if !errors.Is(err, postgresstorage.ErrConflict) {
+			http.Error(res, err.Error(), http.StatusBadRequest)
+			return
+		}
+		status = http.StatusConflict
+	} else {
+		status = http.StatusCreated
 	}
 
 	shortLink := h.baseShortURL + "/" + ident
-
 	res.Header().Set(сontentType, сontentTypeTextPlain)
-	res.WriteHeader(http.StatusCreated)
-
+	res.WriteHeader(status)
 	res.Write([]byte(shortLink))
 }
 
@@ -103,15 +109,21 @@ func (h *linkHandler) GetShortLinkByJSON(res http.ResponseWriter, req *http.Requ
 		return
 	}
 
+	var status int
 	ident, err := h.service.GetIdent(request.URL)
 	if err != nil {
-		http.Error(res, err.Error(), http.StatusBadRequest)
-		return
+		if !errors.Is(err, postgresstorage.ErrConflict) {
+			http.Error(res, err.Error(), http.StatusBadRequest)
+			return
+		}
+		status = http.StatusConflict
+	} else {
+		status = http.StatusCreated
 	}
 	shortLink := h.baseShortURL + "/" + ident
 
 	res.Header().Set(сontentType, сontentTypeAppJSON)
-	res.WriteHeader(http.StatusCreated)
+	res.WriteHeader(status)
 	if err := json.NewEncoder(res).Encode(&dto.LinkRes{Result: shortLink}); err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return

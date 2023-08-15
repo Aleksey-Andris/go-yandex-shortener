@@ -1,9 +1,12 @@
 package postgresstorage
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/domain"
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -28,6 +31,18 @@ func (s *linkStorage) Create(ident, fulLink string) (domain.Link, error) {
 	query := fmt.Sprintf("INSERT INTO %s (%s, %s) VALUES($1, $2) RETURNING id, %s, %s;",
 		linkTable, shortURL, originalURL, shortURL, originalURL)
 	err := s.db.Get(&link, query, ident, fulLink)
+
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgerrcode.IsIntegrityConstraintViolation(pgErr.Code) {
+			err = ErrConflict
+		}
+	}
+
+	query = fmt.Sprintf("SELECT id, %s, %s FROM %s WHERE %s = $1;", shortURL, originalURL, linkTable, originalURL)
+	if err := s.db.Get(&link, query, fulLink); err != nil {
+		return link, err
+	}
 	return link, err
 }
 

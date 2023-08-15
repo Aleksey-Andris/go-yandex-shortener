@@ -34,12 +34,8 @@ func NewLinkService(storage LinkStorage, nextCount int32) *linkService {
 
 func (s *linkService) GetIdent(fulLink string) (string, error) {
 	ident := s.GenerateIdent(fulLink)
-
 	link, err := s.storage.Create(ident, fulLink)
-	if err != nil {
-		return "", err
-	}
-	return link.Ident, nil
+	return link.Ident, err
 }
 
 func (s *linkService) GetIdents(linkReq []dto.LinkListReq) ([]dto.LinkListRes, error) {
