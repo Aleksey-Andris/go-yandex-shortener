@@ -1,6 +1,7 @@
 package hashmapstorage
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -13,7 +14,6 @@ import (
 type linkStorage struct {
 	sync.Mutex
 	linkMap    map[string]domain.Link
-	sequenceID int32
 	record     bool
 	filePath   string
 	file       *os.File
@@ -25,7 +25,6 @@ func NewLinkStorage(linkMap map[string]domain.Link, filePath string) (*linkStora
 
 	storage := &linkStorage{
 		linkMap:    linkMap,
-		sequenceID: 0,
 		record:     filePath != "",
 		filePath:   filePath,
 	}
@@ -37,7 +36,7 @@ func NewLinkStorage(linkMap map[string]domain.Link, filePath string) (*linkStora
 	return storage, nil
 }
 
-func (s *linkStorage) GetOneByIdent(ident string) (domain.Link, error) {
+func (s *linkStorage) GetOneByIdent(ctx context.Context, ident string) (domain.Link, error) {
 	s.Lock()
 	defer s.Unlock()
 	link, ok := s.linkMap[ident]
@@ -48,11 +47,10 @@ func (s *linkStorage) GetOneByIdent(ident string) (domain.Link, error) {
 	return link, nil
 }
 
-func (s *linkStorage) Create(ident, fulLink string) (domain.Link, error) {
+func (s *linkStorage) Create(ctx context.Context, ident, fulLink string) (domain.Link, error) {
 	s.Lock()
 	defer s.Unlock()
 	link := domain.Link{
-		ID:      s.sequenceID,
 		Ident:   ident,
 		FulLink: fulLink,
 	}
@@ -62,11 +60,10 @@ func (s *linkStorage) Create(ident, fulLink string) (domain.Link, error) {
 		}
 	}
 	s.linkMap[ident] = link
-	s.sequenceID++
 	return link, nil
 }
 
-func (s *linkStorage) CreateLinks(links []domain.Link) error {
+func (s *linkStorage) CreateLinks(ctx context.Context, links []domain.Link) error {
 	s.Lock()
 	defer s.Unlock()
 	if s.record {
@@ -79,7 +76,6 @@ func (s *linkStorage) CreateLinks(links []domain.Link) error {
 	for _, v := range links {
 		s.linkMap[v.Ident] = v
 	}
-	s.sequenceID = s.sequenceID + (int32)(len(links))
 	return nil
 }
 
@@ -102,9 +98,6 @@ func (s *linkStorage) loadFromFile() error {
 			return err
 		}
 		s.linkMap[link.Ident] = link
-		if link.ID > s.sequenceID {
-			s.sequenceID = link.ID
-		}
 	}
 	return nil
 }
@@ -114,10 +107,4 @@ func (s *linkStorage) Close() error {
 		return nil
 	}
 	return s.file.Close()
-}
-
-func (s *linkStorage) GetMaxID() (int32, error) {
-	s.Lock()
-	defer s.Unlock()
-	return s.sequenceID, nil
 }

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -24,9 +25,9 @@ const (
 )
 
 type LinkService interface {
-	GetFulLink(ident string) (string, error)
-	GetIdent(fulLink string) (string, error)
-	GetIdents(linkReq []dto.LinkListReq) ([]dto.LinkListRes, error)
+	GetFulLink(ctx context.Context, ident string) (string, error)
+	GetIdent(ctx context.Context, fulLink string) (string, error)
+	GetIdents(ctx context.Context, linkReq []dto.LinkListReq) ([]dto.LinkListRes, error)
 	GenerateIdent(fulLink string) string
 }
 
@@ -68,10 +69,10 @@ func (h *linkHandler) GetShortLink(res http.ResponseWriter, req *http.Request) {
 	}
 
 	var status int
-	ident, err := h.service.GetIdent(string(body))
+	ident, err := h.service.GetIdent(req.Context(), string(body))
 	if err != nil {
 		if !errors.Is(err, postgresstorage.ErrConflict) {
-			http.Error(res, err.Error(), http.StatusBadRequest)
+			http.Error(res, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		status = http.StatusConflict
@@ -86,7 +87,7 @@ func (h *linkHandler) GetShortLink(res http.ResponseWriter, req *http.Request) {
 }
 
 func (h *linkHandler) GetFulLink(res http.ResponseWriter, req *http.Request) {
-	fulLink, err := h.service.GetFulLink(chi.URLParam(req, "ident"))
+	fulLink, err := h.service.GetFulLink(req.Context(), chi.URLParam(req, "ident"))
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
@@ -110,10 +111,10 @@ func (h *linkHandler) GetShortLinkByJSON(res http.ResponseWriter, req *http.Requ
 	}
 
 	var status int
-	ident, err := h.service.GetIdent(request.URL)
+	ident, err := h.service.GetIdent(req.Context(), request.URL)
 	if err != nil {
 		if !errors.Is(err, postgresstorage.ErrConflict) {
-			http.Error(res, err.Error(), http.StatusBadRequest)
+			http.Error(res, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		status = http.StatusConflict
@@ -150,7 +151,7 @@ func (h *linkHandler) GetShortLinkByListJSON(res http.ResponseWriter, req *http.
 		return
 	}
 
-	limkResp, err := h.service.GetIdents(linkReq)
+	limkResp, err := h.service.GetIdents(req.Context(), linkReq)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return

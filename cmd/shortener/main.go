@@ -48,12 +48,7 @@ func main() {
 		}
 	}()
 
-	maxID, err := linkStorage.GetMaxID()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	linkService := service.NewLinkService(linkStorage, maxID+1)
+	linkService := service.NewLinkService(linkStorage)
 	linkHandler := handlers.NewLinkHandler(linkService, flagBaseShortURL)
 
 	router := linkHandler.InitRouter()

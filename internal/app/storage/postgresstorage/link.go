@@ -1,6 +1,7 @@
 package postgresstorage
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -19,18 +20,18 @@ func NewLinkStorage(db *sqlx.DB) (*linkStorage, error) {
 	return s, nil
 }
 
-func (s *linkStorage) GetOneByIdent(ident string) (domain.Link, error) {
+func (s *linkStorage) GetOneByIdent(ctx context.Context, ident string) (domain.Link, error) {
 	var link domain.Link
 	query := fmt.Sprintf("SELECT id, %s, %s FROM %s WHERE %s = $1;", shortURL, originalURL, linkTable, shortURL)
-	err := s.db.Get(&link, query, ident)
+	err := s.db.GetContext(ctx, &link, query, ident)
 	return link, err
 }
 
-func (s *linkStorage) Create(ident, fulLink string) (domain.Link, error) {
+func (s *linkStorage) Create(ctx context.Context, ident, fulLink string) (domain.Link, error) {
 	var link domain.Link
 	query := fmt.Sprintf("INSERT INTO %s (%s, %s) VALUES($1, $2) RETURNING id, %s, %s;",
 		linkTable, shortURL, originalURL, shortURL, originalURL)
-	err := s.db.Get(&link, query, ident, fulLink)
+	err := s.db.GetContext(ctx, &link, query, ident, fulLink)
 
 	if err != nil {
 		var pgErr *pgconn.PgError
@@ -40,13 +41,13 @@ func (s *linkStorage) Create(ident, fulLink string) (domain.Link, error) {
 	}
 
 	query = fmt.Sprintf("SELECT id, %s, %s FROM %s WHERE %s = $1;", shortURL, originalURL, linkTable, originalURL)
-	if err := s.db.Get(&link, query, fulLink); err != nil {
+	if err := s.db.GetContext(ctx, &link, query, fulLink); err != nil {
 		return link, err
 	}
 	return link, err
 }
 
-func (s *linkStorage) CreateLinks(links []domain.Link) error {
+func (s *linkStorage) CreateLinks(ctx context.Context, links []domain.Link) error {
 	tx, err := s.db.Begin()
 	if err != nil {
 		return err
@@ -55,12 +56,12 @@ func (s *linkStorage) CreateLinks(links []domain.Link) error {
 
 	query := fmt.Sprintf("INSERT INTO %s (%s, %s) VALUES($1, $2);",
 		linkTable, shortURL, originalURL)
-	stm, err := s.db.Prepare(query)
+	stm, err := s.db.PrepareContext(ctx, query)
 	if err != nil {
 		return err
 	}
 	for _, v := range links {
-		_, err := stm.Exec(v.Ident, v.FulLink)
+		_, err := stm.ExecContext(ctx, v.Ident, v.FulLink)
 		if err != nil {
 			return err
 		}
@@ -73,14 +74,4 @@ func (s *linkStorage) CreateLinks(links []domain.Link) error {
 
 func (s *linkStorage) Close() error {
 	return s.db.Close()
-}
-
-func (s *linkStorage) GetMaxID() (int32, error) {
-	var maxID int32
-	query := fmt.Sprintf("SELECT COALESCE(MAX(id), 0) FROM %s;", linkTable)
-	row := s.db.QueryRow(query)
-	if err := row.Scan(&maxID); err != nil {
-		return 0, err
-	}
-	return maxID, nil
 }

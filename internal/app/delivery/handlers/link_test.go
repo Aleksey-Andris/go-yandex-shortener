@@ -62,7 +62,7 @@ func Test_linkHandler_GetShortLink(t *testing.T) {
 	}
 
 	linkStorage, _ := hashmapstorage.NewLinkStorage(make(map[string]domain.Link), "")
-	linkService := service.NewLinkService(linkStorage, 1)
+	linkService := service.NewLinkService(linkStorage)
 	linkHandler := NewLinkHandler(linkService, "http://localhost:8080")
 
 	for _, tt := range tests {
@@ -117,7 +117,7 @@ func Test_linkHandler_GetFulLink(t *testing.T) {
 	}
 	linkMap[link.Ident] = link
 	linkStorage, _ := hashmapstorage.NewLinkStorage(linkMap, "")
-	linkService := service.NewLinkService(linkStorage, 1)
+	linkService := service.NewLinkService(linkStorage)
 	linkHandler := NewLinkHandler(linkService, "http://localhost:8080")
 
 	for _, tt := range tests {
@@ -144,7 +144,7 @@ func Test_linkHandler_GetShortLinkByJson(t *testing.T) {
 	c := gomock.NewController(t)
 	defer c.Finish()
 	linkStorage := mockservice.NewMockLinkStorage(c)
-	linkService := service.NewLinkService(linkStorage, 1)
+	linkService := service.NewLinkService(linkStorage)
 	linkHandler := NewLinkHandler(linkService, "http://localhost:8080")
 	testServ := httptest.NewServer(linkHandler.InitRouter())
 	defer testServ.Close()
@@ -172,7 +172,7 @@ func Test_linkHandler_GetShortLinkByJson(t *testing.T) {
 					Ident:   "some_ident",
 					FulLink: "some_link",
 				}
-				s.EXPECT().Create(gomock.Any(), gomock.Any()).Return(link, nil)
+				s.EXPECT().Create(gomock.Any(), gomock.Any(), gomock.Any()).Return(link, nil)
 			},
 		},
 
@@ -260,7 +260,7 @@ func Test_linkHandler_GetShortLinkByListJSON(t *testing.T) {
 	c := gomock.NewController(t)
 	defer c.Finish()
 	linkStorage := mockservice.NewMockLinkStorage(c)
-	linkService := service.NewLinkService(linkStorage, 1)
+	linkService := service.NewLinkService(linkStorage)
 	linkHandler := NewLinkHandler(linkService, "http://localhost:8080")
 	testServ := httptest.NewServer(linkHandler.InitRouter())
 	defer testServ.Close()
@@ -285,7 +285,7 @@ func Test_linkHandler_GetShortLinkByListJSON(t *testing.T) {
 			expectedErr:        false,
 			expectedListSize:    2,
 			mocBehavior: func(s *mockservice.MockLinkStorage) {
-				s.EXPECT().CreateLinks(gomock.Any()).Return(nil)
+				s.EXPECT().CreateLinks(gomock.Any(), gomock.Any()).Return(nil)
 			},
 		},
 

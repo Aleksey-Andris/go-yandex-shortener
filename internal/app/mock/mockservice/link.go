@@ -1,7 +1,9 @@
 package mockservice
 
 
+
 import (
+	context "context"
 	reflect "reflect"
 
 	domain "github.com/Aleksey-Andris/go-yandex-shortener/internal/app/domain"
@@ -46,60 +48,45 @@ func (mr *MockLinkStorageMockRecorder) Close() *gomock.Call {
 }
 
 // Create mocks base method.
-func (m *MockLinkStorage) Create(idemt, fulLink string) (domain.Link, error) {
+func (m *MockLinkStorage) Create(ctx context.Context, idemt, fulLink string) (domain.Link, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Create", idemt, fulLink)
+	ret := m.ctrl.Call(m, "Create", ctx, idemt, fulLink)
 	ret0, _ := ret[0].(domain.Link)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Create indicates an expected call of Create.
-func (mr *MockLinkStorageMockRecorder) Create(idemt, fulLink interface{}) *gomock.Call {
+func (mr *MockLinkStorageMockRecorder) Create(ctx, idemt, fulLink interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockLinkStorage)(nil).Create), idemt, fulLink)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockLinkStorage)(nil).Create), ctx, idemt, fulLink)
 }
 
 // CreateLinks mocks base method.
-func (m *MockLinkStorage) CreateLinks(links []domain.Link) error {
+func (m *MockLinkStorage) CreateLinks(ctx context.Context, links []domain.Link) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateLinks", links)
+	ret := m.ctrl.Call(m, "CreateLinks", ctx, links)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // CreateLinks indicates an expected call of CreateLinks.
-func (mr *MockLinkStorageMockRecorder) CreateLinks(links interface{}) *gomock.Call {
+func (mr *MockLinkStorageMockRecorder) CreateLinks(ctx, links interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateLinks", reflect.TypeOf((*MockLinkStorage)(nil).CreateLinks), links)
-}
-
-// GetMaxID mocks base method.
-func (m *MockLinkStorage) GetMaxID() (int32, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetMaxID")
-	ret0, _ := ret[0].(int32)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetMaxID indicates an expected call of GetMaxID.
-func (mr *MockLinkStorageMockRecorder) GetMaxID() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMaxID", reflect.TypeOf((*MockLinkStorage)(nil).GetMaxID))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateLinks", reflect.TypeOf((*MockLinkStorage)(nil).CreateLinks), ctx, links)
 }
 
 // GetOneByIdent mocks base method.
-func (m *MockLinkStorage) GetOneByIdent(ident string) (domain.Link, error) {
+func (m *MockLinkStorage) GetOneByIdent(ctx context.Context, ident string) (domain.Link, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetOneByIdent", ident)
+	ret := m.ctrl.Call(m, "GetOneByIdent", ctx, ident)
 	ret0, _ := ret[0].(domain.Link)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetOneByIdent indicates an expected call of GetOneByIdent.
-func (mr *MockLinkStorageMockRecorder) GetOneByIdent(ident interface{}) *gomock.Call {
+func (mr *MockLinkStorageMockRecorder) GetOneByIdent(ctx, ident interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOneByIdent", reflect.TypeOf((*MockLinkStorage)(nil).GetOneByIdent), ident)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOneByIdent", reflect.TypeOf((*MockLinkStorage)(nil).GetOneByIdent), ctx, ident)
 }
