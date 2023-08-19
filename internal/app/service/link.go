@@ -2,8 +2,8 @@ package service
 
 import (
 	"context"
+	"crypto/md5"
 	"math/rand"
-	"sync/atomic"
 
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/domain"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/dto"
@@ -23,18 +23,16 @@ type LinkStorage interface {
 
 type linkService struct {
 	storage   LinkStorage
-	count int32
 }
 
 func NewLinkService(storage LinkStorage) *linkService {
 	return &linkService{
 		storage:   storage,
-		count: 1,
 	}
 }
 
 func (s *linkService) GetIdent(ctx context.Context, fulLink string) (string, error) {
-	ident := s.GenerateIdent()
+	ident := s.GenerateIdent(fulLink)
 	link, err := s.storage.Create(ctx, ident, fulLink)
 	return link.Ident, err
 }
@@ -43,7 +41,7 @@ func (s *linkService) GetIdents(ctx context.Context, linkReq []dto.LinkListReq) 
 	result := make([]dto.LinkListRes, 0)
 	links := make([]domain.Link, 0)
 	for _, v := range linkReq {
-		ident := s.GenerateIdent()
+		ident := s.GenerateIdent(v.OriginalURL)
 		result = append(result, dto.LinkListRes{CorrelationID: v.CorrelationID, ShortURL: ident})
 		links = append(links, domain.Link{Ident: ident, FulLink: v.OriginalURL})
 	}
@@ -61,11 +59,12 @@ func (s *linkService) GetFulLink(ctx context.Context, ident string) (string, err
 	return link.FulLink, nil
 }
 
-func (s *linkService) GenerateIdent() string {
+func (s *linkService) GenerateIdent(url string) string {
+	hash := md5.New()
+	hash.Write([]byte(url))
 	hd := hashids.NewData()
-	hd.Salt = salt
+	hd.Salt = string(hash.Sum([]byte(salt)))
 	h, _ := hashids.NewWithData(hd)
-	ident, _ := h.Encode([]int{rand.Int() + int(atomic.LoadInt32(&s.count))})
-	atomic.AddInt32(&s.count, 1)
+	ident, _ := h.Encode([]int{rand.Int()})
 	return ident
 }

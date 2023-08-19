@@ -28,7 +28,7 @@ type LinkService interface {
 	GetFulLink(ctx context.Context, ident string) (string, error)
 	GetIdent(ctx context.Context, fulLink string) (string, error)
 	GetIdents(ctx context.Context, linkReq []dto.LinkListReq) ([]dto.LinkListRes, error)
-	GenerateIdent() string
+	GenerateIdent(url string) string
 }
 
 type linkHandler struct {
