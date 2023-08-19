@@ -1,17 +1,19 @@
 package hashmapstorage
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
-	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/domain"
+	"io"
 	"os"
 	"sync"
+
+	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/domain"
 )
 
 type linkStorage struct {
 	sync.Mutex
 	linkMap    map[string]domain.Link
-	sequenceID int32
 	record     bool
 	filePath   string
 	file       *os.File
@@ -23,7 +25,6 @@ func NewLinkStorage(linkMap map[string]domain.Link, filePath string) (*linkStora
 
 	storage := &linkStorage{
 		linkMap:    linkMap,
-		sequenceID: 1,
 		record:     filePath != "",
 		filePath:   filePath,
 	}
@@ -35,7 +36,7 @@ func NewLinkStorage(linkMap map[string]domain.Link, filePath string) (*linkStora
 	return storage, nil
 }
 
-func (s *linkStorage) GetOneByIdent(ident string) (domain.Link, error) {
+func (s *linkStorage) GetOneByIdent(ctx context.Context, ident string) (domain.Link, error) {
 	s.Lock()
 	defer s.Unlock()
 	link, ok := s.linkMap[ident]
@@ -46,11 +47,10 @@ func (s *linkStorage) GetOneByIdent(ident string) (domain.Link, error) {
 	return link, nil
 }
 
-func (s *linkStorage) Create(ident, fulLink string) (domain.Link, error) {
+func (s *linkStorage) Create(ctx context.Context, ident, fulLink string) (domain.Link, error) {
 	s.Lock()
 	defer s.Unlock()
 	link := domain.Link{
-		ID:      s.sequenceID,
 		Ident:   ident,
 		FulLink: fulLink,
 	}
@@ -60,40 +60,51 @@ func (s *linkStorage) Create(ident, fulLink string) (domain.Link, error) {
 		}
 	}
 	s.linkMap[ident] = link
-	s.sequenceID++
 	return link, nil
 }
 
-func (s *linkStorage) loadFromFile() error {
+func (s *linkStorage) CreateLinks(ctx context.Context, links []domain.Link) error {
 	s.Lock()
 	defer s.Unlock()
-	data, err := os.OpenFile(s.filePath, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
+	if s.record {
+		for _, v := range links {
+			if err := s.encoder.Encode(&v); err != nil {
+				return err
+			}
+		}
+	}
+	for _, v := range links {
+		s.linkMap[v.Ident] = v
+	}
+	return nil
+}
+
+func (s *linkStorage) loadFromFile() error {
+	var err error
+	s.file, err = os.OpenFile(s.filePath, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
 	if err != nil {
 		return err
 	}
-	s.decoder = json.NewDecoder(data)
-	s.encoder = json.NewEncoder(data)
+	s.decoder = json.NewDecoder(s.file)
+	s.encoder = json.NewEncoder(s.file)
 
 	var link domain.Link
 	for {
 		err = s.decoder.Decode(&link)
 		if err != nil {
-			break
+			if err == io.EOF {
+				break
+			}
+			return err
 		}
 		s.linkMap[link.Ident] = link
-		if link.ID > s.sequenceID {
-			s.sequenceID = link.ID
-		}
 	}
 	return nil
 }
 
 func (s *linkStorage) Close() error {
+	if s.file == nil {
+		return nil
+	}
 	return s.file.Close()
-}
-
-func (s *linkStorage) GetSequense() int32 {
-	s.Lock()
-	defer s.Unlock()
-	return s.sequenceID
 }

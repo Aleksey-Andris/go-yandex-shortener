@@ -1,9 +1,13 @@
 package service
 
 import (
+	"context"
+	"crypto/md5"
+	"math/rand"
+
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/domain"
+	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/dto"
 	"github.com/speps/go-hashids"
-	"sync/atomic"
 )
 
 var (
@@ -11,45 +15,56 @@ var (
 )
 
 type LinkStorage interface {
-	GetOneByIdent(ident string) (domain.Link, error)
-	Create(idemt, fulLink string) (domain.Link, error)
+	GetOneByIdent(ctx context.Context, ident string) (domain.Link, error)
+	Create(ctx context.Context, idemt, fulLink string) (domain.Link, error)
+	CreateLinks(ctx context.Context, links []domain.Link) error
+	Close() error
 }
 
 type linkService struct {
-	storage LinkStorage
-	count   int32
+	storage   LinkStorage
 }
 
-func NewLinkService(storage LinkStorage, count int32) *linkService {
+func NewLinkService(storage LinkStorage) *linkService {
 	return &linkService{
-		storage: storage,
-		count:   count,
+		storage:   storage,
 	}
 }
 
-func (s *linkService) GetIdent(fulLink string) (string, error) {
+func (s *linkService) GetIdent(ctx context.Context, fulLink string) (string, error) {
 	ident := s.GenerateIdent(fulLink)
-
-	link, err := s.storage.Create(ident, fulLink)
-	if err != nil {
-		return "", err
-	}
-	return link.Ident, nil
+	link, err := s.storage.Create(ctx, ident, fulLink)
+	return link.Ident, err
 }
 
-func (s *linkService) GetFulLink(ident string) (string, error) {
-	link, err := s.storage.GetOneByIdent(ident)
+func (s *linkService) GetIdents(ctx context.Context, linkReq []dto.LinkListReq) ([]dto.LinkListRes, error) {
+	result := make([]dto.LinkListRes, 0)
+	links := make([]domain.Link, 0)
+	for _, v := range linkReq {
+		ident := s.GenerateIdent(v.OriginalURL)
+		result = append(result, dto.LinkListRes{CorrelationID: v.CorrelationID, ShortURL: ident})
+		links = append(links, domain.Link{Ident: ident, FulLink: v.OriginalURL})
+	}
+	if err := s.storage.CreateLinks(ctx, links); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (s *linkService) GetFulLink(ctx context.Context, ident string) (string, error) {
+	link, err := s.storage.GetOneByIdent(ctx, ident)
 	if err != nil {
 		return "", err
 	}
 	return link.FulLink, nil
 }
 
-func (s *linkService) GenerateIdent(fulLink string) string {
+func (s *linkService) GenerateIdent(url string) string {
+	hash := md5.New()
+	hash.Write([]byte(url))
 	hd := hashids.NewData()
-	hd.Salt = salt
+	hd.Salt = string(hash.Sum([]byte(salt)))
 	h, _ := hashids.NewWithData(hd)
-	ident, _ := h.Encode([]int{int(atomic.LoadInt32(&s.count))})
-	atomic.AddInt32(&s.count, 1)
+	ident, _ := h.Encode([]int{rand.Int()})
 	return ident
 }
