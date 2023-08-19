@@ -29,6 +29,7 @@ type linkService struct {
 func NewLinkService(storage LinkStorage) *linkService {
 	return &linkService{
 		storage:   storage,
+		count: 1,
 	}
 }
 
