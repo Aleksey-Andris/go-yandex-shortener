@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"math/rand"
+	"sync/atomic"
 
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/domain"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/dto"
@@ -22,6 +23,7 @@ type LinkStorage interface {
 
 type linkService struct {
 	storage   LinkStorage
+	count int32
 }
 
 func NewLinkService(storage LinkStorage) *linkService {
@@ -31,7 +33,7 @@ func NewLinkService(storage LinkStorage) *linkService {
 }
 
 func (s *linkService) GetIdent(ctx context.Context, fulLink string) (string, error) {
-	ident := s.GenerateIdent(fulLink)
+	ident := s.GenerateIdent()
 	link, err := s.storage.Create(ctx, ident, fulLink)
 	return link.Ident, err
 }
@@ -40,7 +42,7 @@ func (s *linkService) GetIdents(ctx context.Context, linkReq []dto.LinkListReq) 
 	result := make([]dto.LinkListRes, 0)
 	links := make([]domain.Link, 0)
 	for _, v := range linkReq {
-		ident := s.GenerateIdent(v.OriginalURL)
+		ident := s.GenerateIdent()
 		result = append(result, dto.LinkListRes{CorrelationID: v.CorrelationID, ShortURL: ident})
 		links = append(links, domain.Link{Ident: ident, FulLink: v.OriginalURL})
 	}
@@ -58,10 +60,11 @@ func (s *linkService) GetFulLink(ctx context.Context, ident string) (string, err
 	return link.FulLink, nil
 }
 
-func (s *linkService) GenerateIdent(fulLink string) string {
+func (s *linkService) GenerateIdent() string {
 	hd := hashids.NewData()
 	hd.Salt = salt
 	h, _ := hashids.NewWithData(hd)
-	ident, _ := h.Encode([]int{rand.Int()})
+	ident, _ := h.Encode([]int{rand.Int() + int(atomic.LoadInt32(&s.count))})
+	atomic.AddInt32(&s.count, 1)
 	return ident
 }
