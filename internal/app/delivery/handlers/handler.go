@@ -63,5 +63,5 @@ type LinkService interface {
 	GetIdent(ctx context.Context, fulLink string, userID int32) (string, error)
 	GetIdents(ctx context.Context, linkReq []dto.LinkListReq, userID int32) ([]dto.LinkListRes, error)
 	GenerateIdent(url string) string
-	GetLinksByUserId(ctx context.Context, userID int32) ([]dto.LinkListByUserIdRes, error)
+	GetLinksByUserID(ctx context.Context, userID int32) ([]dto.linkListByUserIDRes, error)
 }

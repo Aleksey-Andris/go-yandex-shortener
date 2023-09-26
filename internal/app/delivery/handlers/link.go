@@ -164,7 +164,7 @@ func (h *Handler) GetLinksByUser(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, "not authorization", http.StatusUnauthorized)
 	}
 
-	linksResp, err := h.services.GetLinksByUserId(req.Context(), userID)
+	linksResp, err := h.services.GetLinksByUserID(req.Context(), userID)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return

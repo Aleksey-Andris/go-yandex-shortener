@@ -18,7 +18,7 @@ type LinkListRes struct {
 	ShortURL      string `json:"short_url"`
 }
 
-type LinkListByUserIdRes struct {
+type linkListByUserIDRes struct {
 	OriginalURL string `json:"original_url" db:"original_url"`
 	ShortURL    string `json:"short_url" db:"short_url"`
 }

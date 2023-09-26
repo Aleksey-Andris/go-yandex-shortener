@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/domain"
-	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/dto"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jmoiron/sqlx"
@@ -74,11 +73,11 @@ func (s *linkStorage) CreateLinks(ctx context.Context, links []domain.Link, user
 	return nil
 }
 
-func (s *linkStorage) GetLinksByUserId(ctx context.Context, userID int32) ([]dto.LinkListByUserIdRes, error) {
-	var linkListByUserIdRes []dto.LinkListByUserIdRes
+func (s *linkStorage) GetLinksByUserID(ctx context.Context, userID int32) ([]dto.linkListByUserIDRes, error) {
+	var linkListByUserIDRes []dto.linkListByUserIDRes
 	query := fmt.Sprintf("SELECT %s, %s FROM %s WHERE %s = $1;", shortURL, originalURL, linkTable, userIDStor)
-	err := s.db.SelectContext(ctx, &linkListByUserIdRes, query, userID)
-	return linkListByUserIdRes, err
+	err := s.db.SelectContext(ctx, &linkListByUserIDRes, query, userID)
+	return linkListByUserIDRes, err
 }
 
 func (s *linkStorage) Close() error {
