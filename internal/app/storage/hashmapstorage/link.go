@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/domain"
+	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/dto"
 )
 
 type linkStorage struct {
@@ -89,13 +90,13 @@ func (s *linkStorage) CreateLinks(ctx context.Context, links []domain.Link, user
 	return nil
 }
 
-func (s *linkStorage) GetLinksByUserID(ctx context.Context, userID int32) ([]dto.linkListByUserIDRes, error) {
+func (s *linkStorage) GetLinksByUserID(ctx context.Context, userID int32) ([]dto.LinkListByUserIDRes, error) {
 	s.Lock()
 	defer s.Unlock()
-	var linkListByUserIDRes []dto.linkListByUserIDRes
+	var linkListByUserIDRes []dto.LinkListByUserIDRes
 	for _, v := range s.linkMap {
 		if v.UserID == userID {
-			linkListByUserIDRes = append(linkListByUserIDRes, dto.linkListByUserIDRes{
+			linkListByUserIDRes = append(linkListByUserIDRes, dto.LinkListByUserIDRes{
 				OriginalURL: v.FulLink,
 				ShortURL:    v.Ident,
 			})

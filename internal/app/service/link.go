@@ -18,7 +18,7 @@ type LinkStorage interface {
 	GetOneByIdent(ctx context.Context, ident string) (domain.Link, error)
 	Create(ctx context.Context, idemt, fulLink string, userID int32) (domain.Link, error)
 	CreateLinks(ctx context.Context, links []domain.Link, userID int32) error
-	GetLinksByUserID(ctx context.Context, userID int32) ([]dto.linkListByUserIDRes, error)
+	GetLinksByUserID(ctx context.Context, userID int32) ([]dto.LinkListByUserIDRes, error)
 	Close() error
 }
 
@@ -53,7 +53,7 @@ func (s *linkService) GetIdents(ctx context.Context, linkReq []dto.LinkListReq, 
 	return result, nil
 }
 
-func (s *linkService) GetLinksByUserID(ctx context.Context, userID int32) ([]dto.linkListByUserIDRes, error) {
+func (s *linkService) GetLinksByUserID(ctx context.Context, userID int32) ([]dto.LinkListByUserIDRes, error) {
 	return s.storage.GetLinksByUserID(ctx, userID)
 }
 
