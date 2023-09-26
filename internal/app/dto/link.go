@@ -17,3 +17,8 @@ type LinkListRes struct {
 	CorrelationID string `json:"correlation_id"`
 	ShortURL      string `json:"short_url"`
 }
+
+type LinkListByUserIdRes struct {
+	OriginalURL string `json:"original_url" db:"original_url"`
+	ShortURL    string `json:"short_url" db:"short_url"`
+}

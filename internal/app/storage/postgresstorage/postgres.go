@@ -12,6 +12,9 @@ const (
 	linkTable   = "ys_link"
 	shortURL    = "short_url"
 	originalURL = "original_url"
+	userTable   = "ys_user"
+	userIDStor  = "user_id"
+	createDate  = "create_date"
 )
 
 var ErrConflict = errors.New("data conflict")
@@ -31,7 +34,12 @@ func NewPostgresDB(cfg string) (*sqlx.DB, error) {
 }
 
 func initTable(db *sqlx.DB) error {
-	query := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (id SERIAL PRIMARY KEY, %s VARCHAR(255) NOT NULL UNIQUE, %s VARCHAR(255) NOT NULL UNIQUE);", linkTable, shortURL, originalURL)
+	query := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (id SERIAL PRIMARY KEY, %s DATE);", userTable, createDate)
 	_, err := db.Exec(query)
+	if err != nil {
+		return err
+	}
+	query = fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (id SERIAL PRIMARY KEY, %s VARCHAR(255) NOT NULL UNIQUE, %s VARCHAR(255) NOT NULL UNIQUE, %s INT REFERENCES %s (id) ON DELETE CASCADE NOT NULL);", linkTable, shortURL, originalURL, userIDStor, userTable)
+	_, err = db.Exec(query)
 	return err
 }

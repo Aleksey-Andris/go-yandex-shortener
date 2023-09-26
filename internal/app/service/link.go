@@ -10,34 +10,35 @@ import (
 	"github.com/speps/go-hashids"
 )
 
-var (
+const (
 	salt = "Qw6"
 )
 
 type LinkStorage interface {
 	GetOneByIdent(ctx context.Context, ident string) (domain.Link, error)
-	Create(ctx context.Context, idemt, fulLink string) (domain.Link, error)
-	CreateLinks(ctx context.Context, links []domain.Link) error
+	Create(ctx context.Context, idemt, fulLink string, userID int32) (domain.Link, error)
+	CreateLinks(ctx context.Context, links []domain.Link, userID int32) error
+	GetLinksByUserId(ctx context.Context, userID int32) ([]dto.LinkListByUserIdRes, error)
 	Close() error
 }
 
 type linkService struct {
-	storage   LinkStorage
+	storage LinkStorage
 }
 
 func NewLinkService(storage LinkStorage) *linkService {
 	return &linkService{
-		storage:   storage,
+		storage: storage,
 	}
 }
 
-func (s *linkService) GetIdent(ctx context.Context, fulLink string) (string, error) {
+func (s *linkService) GetIdent(ctx context.Context, fulLink string, userID int32) (string, error) {
 	ident := s.GenerateIdent(fulLink)
-	link, err := s.storage.Create(ctx, ident, fulLink)
+	link, err := s.storage.Create(ctx, ident, fulLink, userID)
 	return link.Ident, err
 }
 
-func (s *linkService) GetIdents(ctx context.Context, linkReq []dto.LinkListReq) ([]dto.LinkListRes, error) {
+func (s *linkService) GetIdents(ctx context.Context, linkReq []dto.LinkListReq, userID int32) ([]dto.LinkListRes, error) {
 	result := make([]dto.LinkListRes, 0)
 	links := make([]domain.Link, 0)
 	for _, v := range linkReq {
@@ -45,10 +46,15 @@ func (s *linkService) GetIdents(ctx context.Context, linkReq []dto.LinkListReq) 
 		result = append(result, dto.LinkListRes{CorrelationID: v.CorrelationID, ShortURL: ident})
 		links = append(links, domain.Link{Ident: ident, FulLink: v.OriginalURL})
 	}
-	if err := s.storage.CreateLinks(ctx, links); err != nil {
+	err := s.storage.CreateLinks(ctx, links, userID)
+	if err != nil {
 		return nil, err
 	}
 	return result, nil
+}
+
+func (s *linkService) GetLinksByUserId(ctx context.Context, userID int32) ([]dto.LinkListByUserIdRes, error) {
+	return s.storage.GetLinksByUserId(ctx, userID)
 }
 
 func (s *linkService) GetFulLink(ctx context.Context, ident string) (string, error) {

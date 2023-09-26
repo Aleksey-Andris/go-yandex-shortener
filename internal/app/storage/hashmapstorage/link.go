@@ -9,24 +9,27 @@ import (
 	"sync"
 
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/domain"
+	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/dto"
 )
 
 type linkStorage struct {
 	sync.Mutex
-	linkMap    map[string]domain.Link
-	record     bool
-	filePath   string
-	file       *os.File
-	decoder    *json.Decoder
-	encoder    *json.Encoder
+	linkMap   map[string]domain.Link
+	record    bool
+	filePath  string
+	file      *os.File
+	decoder   *json.Decoder
+	encoder   *json.Encoder
+	seqUserID int32
 }
 
 func NewLinkStorage(linkMap map[string]domain.Link, filePath string) (*linkStorage, error) {
 
 	storage := &linkStorage{
-		linkMap:    linkMap,
-		record:     filePath != "",
-		filePath:   filePath,
+		linkMap:   linkMap,
+		record:    filePath != "",
+		filePath:  filePath,
+		seqUserID: 1,
 	}
 	if filePath != "" {
 		if err := storage.loadFromFile(); err != nil {
@@ -47,12 +50,16 @@ func (s *linkStorage) GetOneByIdent(ctx context.Context, ident string) (domain.L
 	return link, nil
 }
 
-func (s *linkStorage) Create(ctx context.Context, ident, fulLink string) (domain.Link, error) {
+func (s *linkStorage) Create(ctx context.Context, ident, fulLink string, userID int32) (domain.Link, error) {
 	s.Lock()
 	defer s.Unlock()
+	if s.seqUserID < userID {
+		s.seqUserID = userID
+	}
 	link := domain.Link{
 		Ident:   ident,
 		FulLink: fulLink,
+		UserID:  userID,
 	}
 	if s.record {
 		if err := s.encoder.Encode(&link); err != nil {
@@ -63,9 +70,12 @@ func (s *linkStorage) Create(ctx context.Context, ident, fulLink string) (domain
 	return link, nil
 }
 
-func (s *linkStorage) CreateLinks(ctx context.Context, links []domain.Link) error {
+func (s *linkStorage) CreateLinks(ctx context.Context, links []domain.Link, userID int32) error {
 	s.Lock()
 	defer s.Unlock()
+	if s.seqUserID < userID {
+		s.seqUserID = userID
+	}
 	if s.record {
 		for _, v := range links {
 			if err := s.encoder.Encode(&v); err != nil {
@@ -74,9 +84,25 @@ func (s *linkStorage) CreateLinks(ctx context.Context, links []domain.Link) erro
 		}
 	}
 	for _, v := range links {
+		v.UserID = userID
 		s.linkMap[v.Ident] = v
 	}
 	return nil
+}
+
+func (s *linkStorage) GetLinksByUserId(ctx context.Context, userID int32) ([]dto.LinkListByUserIdRes, error) {
+	s.Lock()
+	defer s.Unlock()
+	var linkListByUserIdRes []dto.LinkListByUserIdRes
+	for _, v := range s.linkMap {
+		if v.UserID == userID {
+			linkListByUserIdRes = append(linkListByUserIdRes, dto.LinkListByUserIdRes{
+				OriginalURL: v.FulLink,
+				ShortURL:    v.Ident,
+			})
+		}
+	}
+	return linkListByUserIdRes, nil
 }
 
 func (s *linkStorage) loadFromFile() error {
@@ -97,9 +123,19 @@ func (s *linkStorage) loadFromFile() error {
 			}
 			return err
 		}
+		if s.seqUserID < link.UserID {
+			s.seqUserID = link.UserID
+		}
 		s.linkMap[link.Ident] = link
 	}
 	return nil
+}
+
+func (s *linkStorage) CreateUser(ctx context.Context) (int32, error) {
+	s.Lock()
+	defer s.Unlock()
+	s.seqUserID++
+	return s.seqUserID, nil
 }
 
 func (s *linkStorage) Close() error {

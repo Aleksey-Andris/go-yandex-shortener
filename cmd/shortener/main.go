@@ -23,12 +23,16 @@ func main() {
 	if err := logger.Initialize(flagLogLevel); err != nil {
 		log.Fatal(err)
 	}
-
+	var userStorage service.UserStorage
 	var linkStorage service.LinkStorage
 	var db *sqlx.DB
 	var err error
 	if flagConfigDB == "" {
 		linkStorage, err = hashmapstorage.NewLinkStorage(make(map[string]domain.Link), flagFileStoragePath)
+		if err != nil {
+			log.Fatal(err)
+		}
+		userStorage, err = hashmapstorage.NewLinkStorage(make(map[string]domain.Link), flagFileStoragePath)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -41,17 +45,21 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
+		userStorage, err = postgresstorage.NewUserStorage(db)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 	defer func() {
 		if err := linkStorage.Close(); err != nil {
 			log.Fatal(err)
 		}
+
 	}()
 
-	linkService := service.NewLinkService(linkStorage)
-	linkHandler := handlers.NewLinkHandler(linkService, flagBaseShortURL)
-
-	router := linkHandler.InitRouter()
+	servises := handlers.NewServices(linkStorage, userStorage, flagBaseShortURL)
+	handler := handlers.NewHandler(servises, flagBaseShortURL)
+	router := handler.InitRouter()
 	router.Get("/ping", http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		if db == nil {
 			res.WriteHeader(http.StatusInternalServerError)
