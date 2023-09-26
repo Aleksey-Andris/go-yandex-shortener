@@ -57,7 +57,7 @@ func (h *Handler) setTokenID(next http.Handler) http.Handler {
 			next.ServeHTTP(res, req)
 			return
 		}
-		userID, err = h.getNewUserId(req.Context())
+		userID, err = h.getNewUserID(req.Context())
 		if err != nil {
 			http.Error(res, err.Error(), http.StatusInternalServerError)
 			return
@@ -77,7 +77,7 @@ func (h *Handler) setTokenID(next http.Handler) http.Handler {
 	})
 }
 
-func (h *Handler) getNewUserId(ctx context.Context) (int32, error) {
+func (h *Handler) getNewUserID(ctx context.Context) (int32, error) {
 	return h.services.CreateUser(ctx)
 
 }
