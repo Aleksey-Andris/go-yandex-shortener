@@ -48,7 +48,7 @@ func (h *Handler) userIdentity(next http.Handler) http.Handler {
 func (h *Handler) setTokenID(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 
-		userID, err := getUserId(req.Context())
+		userID, err := getUserID(req.Context())
 		if err != nil {
 			http.Error(res, err.Error(), http.StatusInternalServerError)
 			return
@@ -82,7 +82,7 @@ func (h *Handler) getNewUserId(ctx context.Context) (int32, error) {
 
 }
 
-func getUserId(ctx context.Context) (int32, error) {
+func getUserID(ctx context.Context) (int32, error) {
 	id := ctx.Value(userCTX)
 	if id == nil {
 		return -1, nil

@@ -21,7 +21,7 @@ const (
 )
 
 func (h *Handler) GetShortLink(res http.ResponseWriter, req *http.Request) {
-	userID, err := getUserId(req.Context())
+	userID, err := getUserID(req.Context())
 	if err != nil {
 		http.Error(res, "failded getting userID", http.StatusBadRequest)
 		return
@@ -68,7 +68,7 @@ func (h *Handler) GetFulLink(res http.ResponseWriter, req *http.Request) {
 }
 
 func (h *Handler) GetShortLinkByJSON(res http.ResponseWriter, req *http.Request) {
-	userID, err := getUserId(req.Context())
+	userID, err := getUserID(req.Context())
 	if err != nil {
 		http.Error(res, "failded getting userID", http.StatusBadRequest)
 		return
@@ -109,7 +109,7 @@ func (h *Handler) GetShortLinkByJSON(res http.ResponseWriter, req *http.Request)
 }
 
 func (h *Handler) GetShortLinkByListJSON(res http.ResponseWriter, req *http.Request) {
-	userID, err := getUserId(req.Context())
+	userID, err := getUserID(req.Context())
 	if err != nil {
 		http.Error(res, "failded getting userID", http.StatusBadRequest)
 		return
@@ -155,7 +155,7 @@ func (h *Handler) GetShortLinkByListJSON(res http.ResponseWriter, req *http.Requ
 }
 
 func (h *Handler) GetLinksByUser(res http.ResponseWriter, req *http.Request) {
-	userID, err := getUserId(req.Context())
+	userID, err := getUserID(req.Context())
 	if err != nil {
 		http.Error(res, "failded getting userID", http.StatusBadRequest)
 		return
