@@ -28,14 +28,12 @@ func (h *Handler) InitRouter() *chi.Mux {
 	router.Use(logmiddleware.WithLogging)
 	router.Use(gzipmiddleware.Decompress)
 	router.Use(h.userIdentity)
+	router.Use(h.setTokenID)
 	router.Use(middleware.Compress(5, "application/json", "text/html"))
-	router.Group(func(r chi.Router) {
-		r.Use(h.setTokenID)
-		r.Post("/", h.GetShortLink)
-		r.Post("/api/shorten", h.GetShortLinkByJSON)
-		r.Post("/api/shorten/batch", h.GetShortLinkByListJSON)
-		r.Get("/{ident}", h.GetFulLink)
-	})
+	router.Post("/", h.GetShortLink)
+	router.Post("/api/shorten", h.GetShortLinkByJSON)
+	router.Post("/api/shorten/batch", h.GetShortLinkByListJSON)
+	router.Get("/{ident}", h.GetFulLink)
 	router.Get("/api/user/urls", h.GetLinksByUser)
 	return router
 }

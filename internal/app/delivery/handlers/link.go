@@ -160,9 +160,6 @@ func (h *Handler) GetLinksByUser(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, "failded getting userID", http.StatusBadRequest)
 		return
 	}
-	if userID <= 0 {
-		http.Error(res, "not authorization", http.StatusUnauthorized)
-	}
 
 	linksResp, err := h.services.GetLinksByUserID(req.Context(), userID)
 	if err != nil {

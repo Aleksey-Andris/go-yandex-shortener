@@ -30,8 +30,12 @@ func (h *Handler) userIdentity(next http.Handler) http.Handler {
 		userID, valid, err := h.services.ParseToken(tokenString)
 
 		if err != nil {
-			http.Error(res, err.Error(), http.StatusUnauthorized)
+			http.Error(res, err.Error(), http.StatusInternalServerError)
 			return
+		}
+
+		if userID == 0 {
+			http.Error(res, "not authorization", http.StatusUnauthorized)
 		}
 
 		if !valid {
