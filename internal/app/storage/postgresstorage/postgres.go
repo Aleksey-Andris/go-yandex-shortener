@@ -15,6 +15,7 @@ const (
 	userTable   = "ys_user"
 	userIDStor  = "user_id"
 	createDate  = "create_date"
+	isDeleted   = "is_deleted"
 )
 
 var ErrConflict = errors.New("data conflict")
@@ -39,7 +40,7 @@ func initTable(db *sqlx.DB) error {
 	if err != nil {
 		return err
 	}
-	query = fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (id SERIAL PRIMARY KEY, %s VARCHAR(255) NOT NULL UNIQUE, %s VARCHAR(255) NOT NULL UNIQUE, %s INT REFERENCES %s (id) ON DELETE CASCADE NOT NULL);", linkTable, shortURL, originalURL, userIDStor, userTable)
+	query = fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (id SERIAL PRIMARY KEY, %s VARCHAR(255) NOT NULL UNIQUE, %s VARCHAR(255) NOT NULL UNIQUE, %s INT REFERENCES %s (id) ON DELETE CASCADE NOT NULL, %s BOOLEAN DEFAULT false);", linkTable, shortURL, originalURL, userIDStor, userTable, isDeleted)
 	_, err = db.Exec(query)
 	return err
 }

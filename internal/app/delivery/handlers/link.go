@@ -2,13 +2,16 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/dto"
+	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/logger"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/storage/postgresstorage"
 	"github.com/go-chi/chi"
 )
@@ -58,12 +61,16 @@ func (h *Handler) GetShortLink(res http.ResponseWriter, req *http.Request) {
 }
 
 func (h *Handler) GetFulLink(res http.ResponseWriter, req *http.Request) {
-	fulLink, err := h.services.GetFulLink(req.Context(), chi.URLParam(req, "ident"))
+	link, err := h.services.GetFulLink(req.Context(), chi.URLParam(req, "ident"))
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
-	res.Header().Set("Location", fulLink)
+	if link.DeletedFlag {
+		http.Error(res, "resurs deleted", http.StatusGone)
+		return
+	}
+	res.Header().Set("Location", link.FulLink)
 	res.WriteHeader(http.StatusTemporaryRedirect)
 }
 
@@ -180,4 +187,75 @@ func (h *Handler) GetLinksByUser(res http.ResponseWriter, req *http.Request) {
 	res.Header().Set(сontentType, сontentTypeAppJSON)
 	res.WriteHeader(http.StatusOK)
 	res.Write(response)
+}
+
+func (h *Handler) DeleteLinksByIdents(res http.ResponseWriter, req *http.Request) {
+	userID, err := getUserID(req.Context())
+	if err != nil {
+		http.Error(res, "failded getting userID", http.StatusBadRequest)
+		return
+	}
+
+	ct := req.Header.Get(сontentType)
+	if !(ct == сontentTypeAppJSON || ct == сontentTypeAppXGZIP) {
+		http.Error(res, "invalid Content-Type", http.StatusBadRequest)
+		return
+	}
+
+	var request []string
+
+	if err := json.NewDecoder(req.Body).Decode(&request); err != nil {
+		http.Error(res, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	can, err := h.services.CanDelete(req.Context(), userID, request...)
+
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if !can {
+		http.Error(res, "forbidden", http.StatusForbidden)
+		return
+	}
+
+	h.delChan <- delMesage{
+		idents: request,
+	}
+
+	res.WriteHeader(http.StatusAccepted)
+}
+
+func (h *Handler) flushMessagesDelete() {
+	ticker := time.NewTicker(10 * time.Second)
+
+	var idents []string
+
+	for {
+		select {
+		case msg := <-h.delChan:
+			idents = append(idents, msg.idents...)
+		case <-ticker.C:
+			if len(idents) == 0 {
+				continue
+			}
+			err := h.services.DeleteLinksByIdent(context.Background(), idents...)
+			if err != nil {
+				logger.Log().Debug("cannot delete links")
+				continue
+			}
+			idents = nil
+		}
+	}
+}
+
+func (h *Handler) FlushMessagesDeleteNow(context context.Context) error {
+	var idents []string
+	if len(idents) == 0 {
+		return nil
+	}
+	err := h.services.DeleteLinksByIdent(context, idents...)
+	return err
 }

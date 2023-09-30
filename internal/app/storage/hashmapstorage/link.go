@@ -13,7 +13,7 @@ import (
 )
 
 type linkStorage struct {
-	sync.Mutex
+	sync.RWMutex
 	linkMap   map[string]domain.Link
 	record    bool
 	filePath  string
@@ -40,8 +40,8 @@ func NewLinkStorage(linkMap map[string]domain.Link, filePath string) (*linkStora
 }
 
 func (s *linkStorage) GetOneByIdent(ctx context.Context, ident string) (domain.Link, error) {
-	s.Lock()
-	defer s.Unlock()
+	s.RLock()
+	defer s.RUnlock()
 	link, ok := s.linkMap[ident]
 	if !ok {
 		link = domain.Link{}
@@ -91,11 +91,11 @@ func (s *linkStorage) CreateLinks(ctx context.Context, links []domain.Link, user
 }
 
 func (s *linkStorage) GetLinksByUserID(ctx context.Context, userID int32) ([]dto.LinkListByUserIDRes, error) {
-	s.Lock()
-	defer s.Unlock()
+	s.RLock()
+	defer s.RUnlock()
 	var linkListByUserIDRes []dto.LinkListByUserIDRes
 	for _, v := range s.linkMap {
-		if v.UserID == userID {
+		if v.UserID == userID && !v.DeletedFlag {
 			linkListByUserIDRes = append(linkListByUserIDRes, dto.LinkListByUserIDRes{
 				OriginalURL: v.FulLink,
 				ShortURL:    v.Ident,
@@ -103,6 +103,32 @@ func (s *linkStorage) GetLinksByUserID(ctx context.Context, userID int32) ([]dto
 		}
 	}
 	return linkListByUserIDRes, nil
+}
+
+func (s *linkStorage) DeleteByIdents(ctx context.Context, idents ...string) error {
+	s.Lock()
+	defer s.Unlock()
+	for _, v := range idents {
+		link, ok := s.linkMap[v]
+		if ok && !link.DeletedFlag {
+			link.DeletedFlag = true
+			s.linkMap[v] = link
+		}
+	}
+	return nil
+}
+
+func (s *linkStorage) GetByIdents(ctx context.Context, idents ...string) ([]domain.Link, error) {
+	s.RLock()
+	defer s.RUnlock()
+	var links []domain.Link
+	for _, v := range idents {
+		link, ok := s.linkMap[v]
+		if ok {
+			links = append(links, link)
+		}
+	}
+	return links, nil
 }
 
 func (s *linkStorage) loadFromFile() error {
@@ -131,16 +157,16 @@ func (s *linkStorage) loadFromFile() error {
 	return nil
 }
 
-func (s *linkStorage) CreateUser(ctx context.Context) (int32, error) {
-	s.Lock()
-	defer s.Unlock()
-	s.seqUserID++
-	return s.seqUserID, nil
-}
-
 func (s *linkStorage) Close() error {
 	if s.file == nil {
 		return nil
 	}
 	return s.file.Close()
+}
+
+func (s *linkStorage) CreateUser(ctx context.Context) (int32, error) {
+	s.Lock()
+	defer s.Unlock()
+	s.seqUserID++
+	return s.seqUserID, nil
 }

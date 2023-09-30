@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 
+	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/domain"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/dto"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/middlware/gzipmiddleware"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/middlware/logmiddleware"
@@ -11,15 +12,23 @@ import (
 	"github.com/go-chi/chi/middleware"
 )
 
+type delMesage struct {
+	idents []string
+}
 type Handler struct {
 	services     *Service
 	baseShortURL string
+	delChan      chan delMesage
 }
 
 func NewHandler(services *Service, baseShortURL string) *Handler {
-	return &Handler{
+	h := &Handler{
 		services:     services,
-		baseShortURL: baseShortURL}
+		baseShortURL: baseShortURL,
+		delChan:      make(chan delMesage, 1024),
+	}
+	go h.flushMessagesDelete()
+	return h
 
 }
 
@@ -35,6 +44,7 @@ func (h *Handler) InitRouter() *chi.Mux {
 	router.Post("/api/shorten/batch", h.GetShortLinkByListJSON)
 	router.Get("/{ident}", h.GetFulLink)
 	router.Get("/api/user/urls", h.GetLinksByUser)
+	router.Delete("/api/user/urls", h.DeleteLinksByIdents)
 	return router
 }
 
@@ -57,9 +67,11 @@ type AuthService interface {
 }
 
 type LinkService interface {
-	GetFulLink(ctx context.Context, ident string) (string, error)
+	GetFulLink(ctx context.Context, ident string) (domain.Link, error)
 	GetIdent(ctx context.Context, fulLink string, userID int32) (string, error)
 	GetIdents(ctx context.Context, linkReq []dto.LinkListReq, userID int32) ([]dto.LinkListRes, error)
 	GenerateIdent(url string) string
 	GetLinksByUserID(ctx context.Context, userID int32) ([]dto.LinkListByUserIDRes, error)
+	CanDelete(ctx context.Context, userID int32, idents ...string) (bool, error)
+	DeleteLinksByIdent(ctx context.Context, idents ...string) error 
 }

@@ -372,4 +372,7 @@ func Test_linkHandler_GetShortLinkByListJSON(t *testing.T) {
 		})
 	}
 }
+
+TODO сервис по получению ссылок отдельный тест
+TODO удаление по получению ссылок отдельный тест
 */

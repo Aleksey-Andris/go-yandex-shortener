@@ -19,6 +19,8 @@ type LinkStorage interface {
 	Create(ctx context.Context, idemt, fulLink string, userID int32) (domain.Link, error)
 	CreateLinks(ctx context.Context, links []domain.Link, userID int32) error
 	GetLinksByUserID(ctx context.Context, userID int32) ([]dto.LinkListByUserIDRes, error)
+	DeleteByIdents(ctx context.Context, idents ...string) error
+	GetByIdents(ctx context.Context, idents ...string) ([]domain.Link, error)
 	Close() error
 }
 
@@ -57,12 +59,29 @@ func (s *linkService) GetLinksByUserID(ctx context.Context, userID int32) ([]dto
 	return s.storage.GetLinksByUserID(ctx, userID)
 }
 
-func (s *linkService) GetFulLink(ctx context.Context, ident string) (string, error) {
+func (s *linkService) GetFulLink(ctx context.Context, ident string) (domain.Link, error) {
 	link, err := s.storage.GetOneByIdent(ctx, ident)
 	if err != nil {
-		return "", err
+		return link, err
 	}
-	return link.FulLink, nil
+	return link, nil
+}
+
+func (s *linkService) DeleteLinksByIdent(ctx context.Context, idents ...string) error {
+	return s.storage.DeleteByIdents(ctx, idents...)
+}
+
+func (s *linkService) CanDelete(ctx context.Context, userID int32, idents ...string) (bool, error) {
+	links, err := s.storage.GetByIdents(ctx, idents...)
+	if err != nil {
+		return false, err
+	}
+	for _, link := range links {
+		if link.UserID != userID {
+			return false, err
+		}
+	}
+	return true, nil
 }
 
 func (s *linkService) GenerateIdent(url string) string {

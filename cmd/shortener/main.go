@@ -1,9 +1,13 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/configs"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/delivery/handlers"
@@ -30,33 +34,26 @@ func main() {
 	if flagConfigDB == "" {
 		linkStorage, err = hashmapstorage.NewLinkStorage(make(map[string]domain.Link), flagFileStoragePath)
 		if err != nil {
-			log.Fatal(err)
+			logger.Log().Fatal(err.Error())
 		}
 		userStorage, err = hashmapstorage.NewLinkStorage(make(map[string]domain.Link), flagFileStoragePath)
 		if err != nil {
-			log.Fatal(err)
+			logger.Log().Fatal(err.Error())
 		}
 	} else {
 		db, err = postgresstorage.NewPostgresDB(flagConfigDB)
 		if err != nil {
-			log.Fatal(err)
+			logger.Log().Fatal(err.Error())
 		}
 		linkStorage, err = postgresstorage.NewLinkStorage(db)
 		if err != nil {
-			log.Fatal(err)
+			logger.Log().Fatal(err.Error())
 		}
 		userStorage, err = postgresstorage.NewUserStorage(db)
 		if err != nil {
-			log.Fatal(err)
+			logger.Log().Fatal(err.Error())
 		}
 	}
-	defer func() {
-		if err := linkStorage.Close(); err != nil {
-			log.Fatal(err)
-		}
-
-	}()
-
 	servises := handlers.NewServices(linkStorage, userStorage, flagBaseShortURL)
 	handler := handlers.NewHandler(servises, flagBaseShortURL)
 	router := handler.InitRouter()
@@ -72,7 +69,32 @@ func main() {
 		res.WriteHeader(http.StatusOK)
 	}))
 
-	if err := http.ListenAndServe(configs.AppConfig.ServAddr, router); err != nil {
-		log.Fatal(err)
+	srv := &http.Server{
+		Addr:    configs.AppConfig.ServAddr,
+		Handler: router,
+	}
+
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("listen and serve: %v", err)
+		}
+	}()
+
+	s := make(chan os.Signal, 1)
+	signal.Notify(s, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+	<-s
+
+	logger.Log().Debug("shutting down")
+
+	if err := srv.Shutdown(context.Background()); err != nil {
+		logger.Log().Error(err.Error())
+	}
+
+	if err := handler.FlushMessagesDeleteNow(context.Background()); err != nil {
+		logger.Log().Error(err.Error())
+	}
+
+	if err := linkStorage.Close(); err != nil {
+		logger.Log().Error(err.Error())
 	}
 }
