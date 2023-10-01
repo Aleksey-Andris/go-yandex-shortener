@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"sync"
 
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/domain"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/dto"
@@ -16,9 +17,11 @@ type delMesage struct {
 	idents []string
 }
 type Handler struct {
+	sync.Mutex
 	services     *Service
 	baseShortURL string
 	delChan      chan delMesage
+	identsBuf    []string
 }
 
 func NewHandler(services *Service, baseShortURL string) *Handler {
@@ -26,6 +29,7 @@ func NewHandler(services *Service, baseShortURL string) *Handler {
 		services:     services,
 		baseShortURL: baseShortURL,
 		delChan:      make(chan delMesage, 1024),
+		identsBuf:    make([]string, 2048),
 	}
 	go h.flushMessagesDelete()
 	return h
@@ -73,5 +77,5 @@ type LinkService interface {
 	GenerateIdent(url string) string
 	GetLinksByUserID(ctx context.Context, userID int32) ([]dto.LinkListByUserIDRes, error)
 	CanDelete(ctx context.Context, userID int32, idents ...string) (bool, error)
-	DeleteLinksByIdent(ctx context.Context, idents ...string) error 
+	DeleteLinksByIdent(ctx context.Context, idents ...string) error
 }

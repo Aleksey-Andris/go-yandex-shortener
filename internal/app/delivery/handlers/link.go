@@ -229,33 +229,39 @@ func (h *Handler) DeleteLinksByIdents(res http.ResponseWriter, req *http.Request
 }
 
 func (h *Handler) flushMessagesDelete() {
-	ticker := time.NewTicker(10 * time.Second)
-
-	var idents []string
-
+	ticker := time.NewTicker(5 * time.Second)
 	for {
 		select {
 		case msg := <-h.delChan:
-			idents = append(idents, msg.idents...)
+			h.Lock()
+			h.identsBuf = append(h.identsBuf, msg.idents...)
+			h.Unlock()
 		case <-ticker.C:
-			if len(idents) == 0 {
+			h.Lock()
+			if len(h.identsBuf) == 0 {
 				continue
 			}
-			err := h.services.DeleteLinksByIdent(context.Background(), idents...)
+			err := h.services.DeleteLinksByIdent(context.Background(), h.identsBuf...)
 			if err != nil {
 				logger.Log().Debug("cannot delete links")
 				continue
 			}
-			idents = nil
+			h.identsBuf = nil
+			h.Unlock()
 		}
 	}
 }
 
 func (h *Handler) FlushMessagesDeleteNow(context context.Context) error {
-	var idents []string
-	if len(idents) == 0 {
+	h.Lock()
+	defer h.Unlock()
+	close(h.delChan)
+	for msg := range h.delChan {
+		h.identsBuf = append(h.identsBuf, msg.idents...)
+	}
+	if len(h.identsBuf) == 0 {
 		return nil
 	}
-	err := h.services.DeleteLinksByIdent(context, idents...)
+	err := h.services.DeleteLinksByIdent(context, h.identsBuf...)
 	return err
 }
