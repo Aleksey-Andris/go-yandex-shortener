@@ -53,7 +53,7 @@ type Service struct {
 	LinkService
 }
 
-func NewServices(linkStorage service.LinkStorage, userStorage service.UserStorage, baseShortURL string) *Service {
+func NewServices(linkStorage service.LinkStorage, userStorage service.UserStorage) *Service {
 	return &Service{
 		AuthService: service.NewAauthService(userStorage),
 		LinkService: service.NewLinkService(linkStorage),

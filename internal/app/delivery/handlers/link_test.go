@@ -1,5 +1,5 @@
 package handlers
-/*
+
 import (
 	"bytes"
 	"compress/gzip"
@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -14,13 +15,13 @@ import (
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/domain"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/dto"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/mock/mockservice"
-	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/service"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/storage/hashmapstorage"
 	"github.com/go-chi/chi"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
+
 
 func Test_linkHandler_GetShortLink(t *testing.T) {
 	tests := []struct {
@@ -62,8 +63,9 @@ func Test_linkHandler_GetShortLink(t *testing.T) {
 	}
 
 	linkStorage, _ := hashmapstorage.NewLinkStorage(make(map[string]domain.Link), "")
-	linkService := service.NewLinkService(linkStorage)
-	linkHandler := NewLinkHandler(linkService, "http://localhost:8080")
+	userStorage, _ := hashmapstorage.NewLinkStorage(make(map[string]domain.Link), "")
+	servises := NewServices(linkStorage, userStorage)
+	handler := NewHandler(servises, "http://localhost:8080")
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -71,7 +73,7 @@ func Test_linkHandler_GetShortLink(t *testing.T) {
 			request.Header.Set("Content-Type", tt.requestContentType)
 
 			rec := httptest.NewRecorder()
-			linkHandler.GetShortLink(rec, request)
+			handler.GetShortLink(rec, request)
 
 			res := rec.Result()
 
@@ -108,6 +110,14 @@ func Test_linkHandler_GetFulLink(t *testing.T) {
 			expectedStatusCode: http.StatusBadRequest,
 			expectedLocation:   "",
 		},
+
+		{
+			name:               "is deleted",
+			requestURL:         "/",
+			paramURL:           "123458",
+			expectedStatusCode: http.StatusGone,
+			expectedLocation:   "",
+		},
 	}
 	linkMap := make(map[string]domain.Link)
 	link := domain.Link{
@@ -115,10 +125,18 @@ func Test_linkHandler_GetFulLink(t *testing.T) {
 		Ident:   "123456",
 		FulLink: "https://practicum.test5.ru/",
 	}
+	linkDeleted := domain.Link{
+		ID:      2,
+		Ident:   "123458",
+		FulLink: "https://practicum.test8.ru/",
+		DeletedFlag: true,
+	}
 	linkMap[link.Ident] = link
+	linkMap[linkDeleted.Ident] = linkDeleted
 	linkStorage, _ := hashmapstorage.NewLinkStorage(linkMap, "")
-	linkService := service.NewLinkService(linkStorage)
-	linkHandler := NewLinkHandler(linkService, "http://localhost:8080")
+	userStorage, _ := hashmapstorage.NewLinkStorage(linkMap, "")
+	servises := NewServices(linkStorage, userStorage)
+	handler := NewHandler(servises, "http://localhost:8080")
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -129,27 +147,28 @@ func Test_linkHandler_GetFulLink(t *testing.T) {
 			request = request.WithContext(context.WithValue(request.Context(), chi.RouteCtxKey, rctx))
 
 			rec := httptest.NewRecorder()
-			linkHandler.GetFulLink(rec, request)
+			handler.GetFulLink(rec, request)
 
 			res := rec.Result()
 			defer res.Body.Close()
 
-			assert.Equal(t, res.StatusCode, tt.expectedStatusCode)
-			assert.Equal(t, res.Header.Get("Location"), tt.expectedLocation)
+			assert.Equal(t, tt.expectedStatusCode, res.StatusCode)
+			assert.Equal(t,  tt.expectedLocation, res.Header.Get("Location"))
 		})
 	}
-}
+} 
 
 func Test_linkHandler_GetShortLinkByJson(t *testing.T) {
 	c := gomock.NewController(t)
 	defer c.Finish()
+	userStorage := mockservice.NewMockUserStorage(c)
 	linkStorage := mockservice.NewMockLinkStorage(c)
-	linkService := service.NewLinkService(linkStorage)
-	linkHandler := NewLinkHandler(linkService, "http://localhost:8080")
-	testServ := httptest.NewServer(linkHandler.InitRouter())
+	servises := NewServices(linkStorage, userStorage)
+	handler := NewHandler(servises, "http://localhost:8080")
+	testServ := httptest.NewServer(handler.InitRouter())
 	defer testServ.Close()
 
-	type mocBehavior func(s *mockservice.MockLinkStorage)
+	type mocBehavior func(sa *mockservice.MockUserStorage, sl *mockservice.MockLinkStorage)
 	tests := []struct {
 		name               string
 		requestURL         string
@@ -166,50 +185,57 @@ func Test_linkHandler_GetShortLinkByJson(t *testing.T) {
 			requestContentType: "application/json",
 			expectedStatusCode: http.StatusCreated,
 			expectedErr:        false,
-			mocBehavior: func(s *mockservice.MockLinkStorage) {
+			mocBehavior: func(sa *mockservice.MockUserStorage, sl *mockservice.MockLinkStorage) {
 				link := domain.Link{
 					ID:      1,
 					Ident:   "some_ident",
 					FulLink: "some_link",
 				}
-				s.EXPECT().Create(gomock.Any(), gomock.Any(), gomock.Any()).Return(link, nil)
+				sa.EXPECT().CreateUser(gomock.Any()).Return(int32(1), nil)
+				sl.EXPECT().Create(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(link, nil)
 			},
 		},
 
-		{
-			name:               "incorrect Content Type (json)",
-			requestURL:         "/api/shorten",
-			requestContentType: "application/gson",
-			requestBody:        `{"url": "https://practicum.test.ru/"}`,
-			expectedStatusCode: http.StatusBadRequest,
-			expectedErr:        true,
-			mocBehavior:        func(s *mockservice.MockLinkStorage) {},
-		},
+			{
+				name:               "incorrect Content Type (json)",
+				requestURL:         "/api/shorten",
+				requestContentType: "application/gson",
+				requestBody:        `{"url": "https://practicum.test.ru/"}`,
+				expectedStatusCode: http.StatusBadRequest,
+				expectedErr:        true,
+				mocBehavior:        func(sa *mockservice.MockUserStorage, sl *mockservice.MockLinkStorage) {
+					sa.EXPECT().CreateUser(gomock.Any()).Return(int32(1), nil)
+				},
+			},
 
-		{
-			name:               "empty Content Type (json)",
-			requestURL:         "/api/shorten",
-			requestContentType: "",
-			requestBody:        `{"url": "https://practicum.test.ru/"}`,
-			expectedStatusCode: http.StatusBadRequest,
-			expectedErr:        true,
-			mocBehavior:        func(s *mockservice.MockLinkStorage) {},
-		},
+			{
+				name:               "empty Content Type (json)",
+				requestURL:         "/api/shorten",
+				requestContentType: "",
+				requestBody:        `{"url": "https://practicum.test.ru/"}`,
+				expectedStatusCode: http.StatusBadRequest,
+				expectedErr:        true,
+				mocBehavior:        func(sa *mockservice.MockUserStorage, sl *mockservice.MockLinkStorage) {
+					sa.EXPECT().CreateUser(gomock.Any()).Return(int32(1), nil)
+				},
+			},
 
-		{
-			name:               "empty body",
-			requestURL:         "/api/shorten",
-			requestContentType: "application/json",
-			requestBody:        "",
-			expectedStatusCode: http.StatusBadRequest,
-			expectedErr:        true,
-			mocBehavior:        func(s *mockservice.MockLinkStorage) {},
-		},
+			{
+				name:               "empty body",
+				requestURL:         "/api/shorten",
+				requestContentType: "application/json",
+				requestBody:        "",
+				expectedStatusCode: http.StatusBadRequest,
+				expectedErr:        true,
+				mocBehavior:        func(sa *mockservice.MockUserStorage, sl *mockservice.MockLinkStorage) {
+					sa.EXPECT().CreateUser(gomock.Any()).Return(int32(1), nil)
+				},
+			},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.mocBehavior(linkStorage)
+			tt.mocBehavior(userStorage, linkStorage)
 
 			req, err := http.NewRequest(http.MethodPost, testServ.URL+tt.requestURL, bytes.NewBufferString(tt.requestBody))
 			require.NoError(t, err)
@@ -229,7 +255,7 @@ func Test_linkHandler_GetShortLinkByJson(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%s with gzip", tt.name), func(t *testing.T) {
-			tt.mocBehavior(linkStorage)
+			tt.mocBehavior(userStorage, linkStorage)
 
 			buf := bytes.NewBuffer(nil)
 			zb := gzip.NewWriter(buf)
@@ -259,13 +285,14 @@ func Test_linkHandler_GetShortLinkByJson(t *testing.T) {
 func Test_linkHandler_GetShortLinkByListJSON(t *testing.T) {
 	c := gomock.NewController(t)
 	defer c.Finish()
+	userStorage := mockservice.NewMockUserStorage(c)
 	linkStorage := mockservice.NewMockLinkStorage(c)
-	linkService := service.NewLinkService(linkStorage)
-	linkHandler := NewLinkHandler(linkService, "http://localhost:8080")
-	testServ := httptest.NewServer(linkHandler.InitRouter())
+	servises := NewServices(linkStorage, userStorage)
+	handler := NewHandler(servises, "http://localhost:8080")
+	testServ := httptest.NewServer(handler.InitRouter())
 	defer testServ.Close()
 
-	type mocBehavior func(s *mockservice.MockLinkStorage)
+	type mocBehavior func(sa *mockservice.MockUserStorage, sl *mockservice.MockLinkStorage)
 	tests := []struct {
 		name               string
 		requestURL         string
@@ -284,10 +311,11 @@ func Test_linkHandler_GetShortLinkByListJSON(t *testing.T) {
 			expectedStatusCode: http.StatusCreated,
 			expectedErr:        false,
 			expectedListSize:    2,
-			mocBehavior: func(s *mockservice.MockLinkStorage) {
-				s.EXPECT().CreateLinks(gomock.Any(), gomock.Any()).Return(nil)
+			mocBehavior: func(sa *mockservice.MockUserStorage, sl *mockservice.MockLinkStorage) {
+				sa.EXPECT().CreateUser(gomock.Any()).Return(int32(1), nil)
+				sl.EXPECT().CreateLinks(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			},
-		},
+		}, 
 
 		{
 			name:               "incorrect Content Type (json)",
@@ -296,7 +324,9 @@ func Test_linkHandler_GetShortLinkByListJSON(t *testing.T) {
 			requestBody:        `[{"correlation_id": "string_ident1","original_url":"https://practicum.test1.ru/"},{"correlation_id":"string_ident2","original_url":"https://practicum.test2.ru/"}]`,
 			expectedStatusCode: http.StatusBadRequest,
 			expectedErr:        true,
-			mocBehavior:        func(s *mockservice.MockLinkStorage) {},
+			mocBehavior: func(sa *mockservice.MockUserStorage, sl *mockservice.MockLinkStorage) {
+				sa.EXPECT().CreateUser(gomock.Any()).Return(int32(1), nil)
+			},
 		},
 
 		{
@@ -306,13 +336,15 @@ func Test_linkHandler_GetShortLinkByListJSON(t *testing.T) {
 			requestBody:        "",
 			expectedStatusCode: http.StatusBadRequest,
 			expectedErr:        true,
-			mocBehavior:        func(s *mockservice.MockLinkStorage) {},
-		},
+			mocBehavior: func(sa *mockservice.MockUserStorage, sl *mockservice.MockLinkStorage) {
+				sa.EXPECT().CreateUser(gomock.Any()).Return(int32(1), nil)
+			},
+		}, 
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.mocBehavior(linkStorage)
+			tt.mocBehavior(userStorage, linkStorage)
 
 			req, err := http.NewRequest(http.MethodPost, testServ.URL+tt.requestURL, bytes.NewBufferString(tt.requestBody))
 			require.NoError(t, err)
@@ -338,7 +370,7 @@ func Test_linkHandler_GetShortLinkByListJSON(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%s with gzip", tt.name), func(t *testing.T) {
-			tt.mocBehavior(linkStorage)
+			tt.mocBehavior(userStorage, linkStorage)
 
 			buf := bytes.NewBuffer(nil)
 			zb := gzip.NewWriter(buf)
@@ -370,9 +402,9 @@ func Test_linkHandler_GetShortLinkByListJSON(t *testing.T) {
 				assert.True(t, tt.expectedListSize == len(linkReq))
 			}
 		})
-	}
+	} 
 }
-
-TODO сервис по получению ссылок отдельный тест
+/*
 TODO удаление по получению ссылок отдельный тест
+TODO сервис по получению ссылок отдельный тест
 */

@@ -54,7 +54,7 @@ func main() {
 			logger.Log().Fatal(err.Error())
 		}
 	}
-	servises := handlers.NewServices(linkStorage, userStorage, flagBaseShortURL)
+	servises := handlers.NewServices(linkStorage, userStorage)
 	handler := handlers.NewHandler(servises, flagBaseShortURL)
 	router := handler.InitRouter()
 	router.Get("/ping", http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
