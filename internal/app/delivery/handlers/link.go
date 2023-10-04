@@ -246,6 +246,10 @@ func (h *Handler) flushMessagesDelete(stop <-chan bool) {
 			}
 			identsBuf = identsBuf[:0]
 		case <-stop:
+			close(h.delChan)
+			for msg := range h.delChan {
+				identsBuf = append(identsBuf, msg.idents...)
+			}
 			if len(identsBuf) == 0 {
 				return
 			}
@@ -260,4 +264,5 @@ func (h *Handler) flushMessagesDelete(stop <-chan bool) {
 
 func (h *Handler) FlushMessagesDeleteNow() {
 	h.stopChan <- true
+	close(h.stopChan) 
 }
