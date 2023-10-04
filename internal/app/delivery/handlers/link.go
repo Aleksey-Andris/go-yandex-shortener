@@ -228,40 +228,36 @@ func (h *Handler) DeleteLinksByIdents(res http.ResponseWriter, req *http.Request
 	res.WriteHeader(http.StatusAccepted)
 }
 
-func (h *Handler) flushMessagesDelete() {
+func (h *Handler) flushMessagesDelete(stop <-chan bool) {
 	ticker := time.NewTicker(5 * time.Second)
+	identsBuf := make([]string, 0)
 	for {
 		select {
 		case msg := <-h.delChan:
-			h.Lock()
-			h.identsBuf = append(h.identsBuf, msg.idents...)
-			h.Unlock()
+			identsBuf = append(identsBuf, msg.idents...)
 		case <-ticker.C:
-			h.Lock()
-			if len(h.identsBuf) == 0 {
+			if len(identsBuf) == 0 {
 				continue
 			}
-			err := h.services.DeleteLinksByIdent(context.Background(), h.identsBuf...)
+			err := h.services.DeleteLinksByIdent(context.Background(), identsBuf...)
 			if err != nil {
 				logger.Log().Debug("cannot delete links")
 				continue
 			}
-			h.identsBuf = nil
-			h.Unlock()
+			identsBuf = identsBuf[:0]
+		case <-stop:
+			if len(identsBuf) == 0 {
+				return
+			}
+			err := h.services.DeleteLinksByIdent(context.Background(), identsBuf...)
+			if err != nil {
+				logger.Log().Debug("cannot delete links when stop")
+				return
+			}
 		}
 	}
 }
 
-func (h *Handler) FlushMessagesDeleteNow(context context.Context) error {
-	h.Lock()
-	defer h.Unlock()
-	close(h.delChan)
-	for msg := range h.delChan {
-		h.identsBuf = append(h.identsBuf, msg.idents...)
-	}
-	if len(h.identsBuf) == 0 {
-		return nil
-	}
-	err := h.services.DeleteLinksByIdent(context, h.identsBuf...)
-	return err
+func (h *Handler) FlushMessagesDeleteNow() {
+	h.stopChan <- true
 }

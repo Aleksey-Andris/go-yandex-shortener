@@ -481,7 +481,6 @@ func Test_Handler_GetLinksByUser(t *testing.T) {
 	}
 }
 
-/*
 func Test_Handler_DeleteLinksByIdents(t *testing.T) {
 	c := gomock.NewController(t)
 	defer c.Finish()
@@ -501,75 +500,67 @@ func Test_Handler_DeleteLinksByIdents(t *testing.T) {
 		mocBehavior        mocBehavior
 	}{
 
-			  TODO понять почему тест не проходит, sl.EXPECT() не регестрирует вызов в другом потоке.
-
-				{
-					name:               "delete link by idents",
-					requestURL:         "/api/user/urls",
-					requestBody:        `["some_ident1", "some_ident2", "some_ident3" ]`,
-					requestContentType: "application/json",
-					expectedStatusCode: http.StatusAccepted,
-					mocBehavior: func(sa *mockservice.MockUserStorage, sl *mockservice.MockLinkStorage) {
-						link1 := domain.Link{
-							ID:      1,
-							Ident:   "some_ident1",
-							FulLink: "some_link1",
-							UserID:  1,
-						}
-						link2 := domain.Link{
-							ID:      2,
-							Ident:   "some_ident2",
-							FulLink: "some_link2",
-							UserID:  1,
-						}
-						link3 := domain.Link{
-							ID:      3,
-							Ident:   "some_ident3",
-							FulLink: "some_link3",
-							UserID:  1,
-						}
-						links := []domain.Link{link1, link2, link3}
-						sa.EXPECT().CreateUser(gomock.Any()).Return(int32(1), nil)
-						sl.EXPECT().GetByIdents(gomock.Any(), "some_ident1", "some_ident2", "some_ident3").Return(links, nil)
-						sl.EXPECT().DeleteByIdents(gomock.Any(), "some_ident1", "some_ident2", "some_ident3").Return(nil)
-					},
-				}, 
-
-	TODO понять почему тест не проходит, тест останавливается из-за блокировки хендлера в методе FlushMessagesDeleteNow
-	, но если не создавать общий буфер в виде слайса, а сделать слайс и внутри метода, то можно потерять данные при остановке
-	в flushMessagesDelete. Непонятно как в данном случае организовать эффективный буфер без блокировок. 
-	 Либо блокировки либо потери данных при остановке
-			{
-				name:               "delete link by idents - forbidden",
-				requestURL:         "/api/user/urls",
-				requestBody:        `["some_ident1", "some_ident2", "some_ident3" ]`,
-				requestContentType: "application/json",
-				expectedStatusCode: http.StatusForbidden,
-				mocBehavior: func(sa *mockservice.MockUserStorage, sl *mockservice.MockLinkStorage) {
-					link1 := domain.Link{
-						ID:      1,
-						Ident:   "some_ident1",
-						FulLink: "some_link1",
-						UserID:  1,
-					}
-					link2 := domain.Link{
-						ID:      2,
-						Ident:   "some_ident2",
-						FulLink: "some_link2",
-						UserID:  1,
-					}
-					link3 := domain.Link{
-						ID:      3,
-						Ident:   "some_ident3",
-						FulLink: "some_link3",
-						UserID:  1,
-					}
-					links := []domain.Link{link1, link2, link3}
-					sa.EXPECT().CreateUser(gomock.Any()).Return(int32(2), nil)
-					sl.EXPECT().GetByIdents(gomock.Any(), "some_ident1", "some_ident2", "some_ident3").Return(links, nil)
-				},
+		{
+			name:               "delete link by idents",
+			requestURL:         "/api/user/urls",
+			requestBody:        `["some_ident1", "some_ident2", "some_ident3" ]`,
+			requestContentType: "application/json",
+			expectedStatusCode: http.StatusAccepted,
+			mocBehavior: func(sa *mockservice.MockUserStorage, sl *mockservice.MockLinkStorage) {
+				link1 := domain.Link{
+					ID:      1,
+					Ident:   "some_ident1",
+					FulLink: "some_link1",
+					UserID:  1,
+				}
+				link2 := domain.Link{
+					ID:      2,
+					Ident:   "some_ident2",
+					FulLink: "some_link2",
+					UserID:  1,
+				}
+				link3 := domain.Link{
+					ID:      3,
+					Ident:   "some_ident3",
+					FulLink: "some_link3",
+					UserID:  1,
+				}
+				links := []domain.Link{link1, link2, link3}
+				sa.EXPECT().CreateUser(gomock.Any()).Return(int32(1), nil)
+				sl.EXPECT().GetByIdents(gomock.Any(), "some_ident1", "some_ident2", "some_ident3").Return(links, nil)
 			},
+		},
 
+		{
+			name:               "delete link by idents - forbidden",
+			requestURL:         "/api/user/urls",
+			requestBody:        `["some_ident1", "some_ident2", "some_ident3" ]`,
+			requestContentType: "application/json",
+			expectedStatusCode: http.StatusForbidden,
+			mocBehavior: func(sa *mockservice.MockUserStorage, sl *mockservice.MockLinkStorage) {
+				link1 := domain.Link{
+					ID:      1,
+					Ident:   "some_ident1",
+					FulLink: "some_link1",
+					UserID:  1,
+				}
+				link2 := domain.Link{
+					ID:      2,
+					Ident:   "some_ident2",
+					FulLink: "some_link2",
+					UserID:  1,
+				}
+				link3 := domain.Link{
+					ID:      3,
+					Ident:   "some_ident3",
+					FulLink: "some_link3",
+					UserID:  1,
+				}
+				links := []domain.Link{link1, link2, link3}
+				sa.EXPECT().CreateUser(gomock.Any()).Return(int32(2), nil)
+				sl.EXPECT().GetByIdents(gomock.Any(), "some_ident1", "some_ident2", "some_ident3").Return(links, nil)
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -581,7 +572,6 @@ func Test_Handler_DeleteLinksByIdents(t *testing.T) {
 			req.Header.Set("Content-Type", tt.requestContentType)
 
 			res, err := testServ.Client().Do(req)
-			handler.FlushMessagesDeleteNow(context.Background())
 
 			require.NoError(t, err)
 			defer res.Body.Close()
@@ -589,4 +579,4 @@ func Test_Handler_DeleteLinksByIdents(t *testing.T) {
 			assert.Equal(t, tt.expectedStatusCode, res.StatusCode)
 		})
 	}
-} */
+}

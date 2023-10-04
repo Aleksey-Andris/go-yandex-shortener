@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"sync"
 
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/domain"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/dto"
@@ -17,21 +16,20 @@ type delMesage struct {
 	idents []string
 }
 type Handler struct {
-	sync.Mutex
 	services     *Service
 	baseShortURL string
 	delChan      chan delMesage
-	identsBuf    []string
+	stopChan     chan bool
 }
 
 func NewHandler(services *Service, baseShortURL string) *Handler {
 	h := &Handler{
 		services:     services,
 		baseShortURL: baseShortURL,
-		delChan:      make(chan delMesage, 1024),
-		identsBuf:    make([]string, 2048),
+		delChan:      make(chan delMesage, 1),
+		stopChan:     make(chan bool),
 	}
-	go h.flushMessagesDelete()
+	go h.flushMessagesDelete(h.stopChan)
 	return h
 
 }

@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/configs"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/delivery/handlers"
@@ -86,13 +87,14 @@ func main() {
 
 	logger.Log().Debug("shutting down")
 
-	if err := srv.Shutdown(context.Background()); err != nil {
+	context, gansel := context.WithTimeout(context.Background(), time.Second*10)
+	defer gansel()
+
+	if err := srv.Shutdown(context); err != nil {
 		logger.Log().Error(err.Error())
 	}
 
-	if err := handler.FlushMessagesDeleteNow(context.Background()); err != nil {
-		logger.Log().Error(err.Error())
-	}
+	handler.FlushMessagesDeleteNow()
 
 	if err := linkStorage.Close(); err != nil {
 		logger.Log().Error(err.Error())

@@ -18,7 +18,7 @@ func (h *Handler) userIdentity(next http.Handler) http.Handler {
 
 		cookieToken, err := req.Cookie("token")
 		if err != nil {
-			if err == http.ErrNoCookie {
+			if errors.Is(err, http.ErrNoCookie) {
 				next.ServeHTTP(res, req)
 				return
 			}
