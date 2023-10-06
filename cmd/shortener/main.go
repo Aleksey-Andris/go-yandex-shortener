@@ -1,9 +1,14 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/configs"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/delivery/handlers"
@@ -23,35 +28,36 @@ func main() {
 	if err := logger.Initialize(flagLogLevel); err != nil {
 		log.Fatal(err)
 	}
-
+	var userStorage service.UserStorage
 	var linkStorage service.LinkStorage
 	var db *sqlx.DB
 	var err error
 	if flagConfigDB == "" {
 		linkStorage, err = hashmapstorage.NewLinkStorage(make(map[string]domain.Link), flagFileStoragePath)
 		if err != nil {
-			log.Fatal(err)
+			logger.Log().Fatal(err.Error())
+		}
+		userStorage, err = hashmapstorage.NewLinkStorage(make(map[string]domain.Link), flagFileStoragePath)
+		if err != nil {
+			logger.Log().Fatal(err.Error())
 		}
 	} else {
 		db, err = postgresstorage.NewPostgresDB(flagConfigDB)
 		if err != nil {
-			log.Fatal(err)
+			logger.Log().Fatal(err.Error())
 		}
 		linkStorage, err = postgresstorage.NewLinkStorage(db)
 		if err != nil {
-			log.Fatal(err)
+			logger.Log().Fatal(err.Error())
+		}
+		userStorage, err = postgresstorage.NewUserStorage(db)
+		if err != nil {
+			logger.Log().Fatal(err.Error())
 		}
 	}
-	defer func() {
-		if err := linkStorage.Close(); err != nil {
-			log.Fatal(err)
-		}
-	}()
-
-	linkService := service.NewLinkService(linkStorage)
-	linkHandler := handlers.NewLinkHandler(linkService, flagBaseShortURL)
-
-	router := linkHandler.InitRouter()
+	servises := handlers.NewServices(linkStorage, userStorage)
+	handler := handlers.NewHandler(servises, flagBaseShortURL)
+	router := handler.InitRouter()
 	router.Get("/ping", http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		if db == nil {
 			res.WriteHeader(http.StatusInternalServerError)
@@ -64,7 +70,33 @@ func main() {
 		res.WriteHeader(http.StatusOK)
 	}))
 
-	if err := http.ListenAndServe(configs.AppConfig.ServAddr, router); err != nil {
-		log.Fatal(err)
+	srv := &http.Server{
+		Addr:    configs.AppConfig.ServAddr,
+		Handler: router,
+	}
+
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("listen and serve: %v", err)
+		}
+	}()
+
+	s := make(chan os.Signal, 1)
+	signal.Notify(s, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+	<-s
+
+	logger.Log().Debug("shutting down")
+
+	context, gansel := context.WithTimeout(context.Background(), time.Second*10)
+	defer gansel()
+
+	if err := srv.Shutdown(context); err != nil {
+		logger.Log().Error(err.Error())
+	}
+
+	handler.FlushMessagesDeleteNow()
+
+	if err := linkStorage.Close(); err != nil {
+		logger.Log().Error(err.Error())
 	}
 }

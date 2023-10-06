@@ -39,7 +39,7 @@ func (c *compressReader) Close() error {
 	return c.zr.Close()
 }
 
-func Decompress(h http.Handler) http.Handler {
+func Decompress(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		if isContentGzip(req) {
 			cr, err := newCompressReader(req.Body)
@@ -50,7 +50,7 @@ func Decompress(h http.Handler) http.Handler {
 			req.Body = cr
 			defer cr.Close()
 		}
-		h.ServeHTTP(res, req)
+		next.ServeHTTP(res, req)
 	})
 }
 

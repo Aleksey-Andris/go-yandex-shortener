@@ -8,13 +8,12 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/dto"
-	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/middlware/gzipmiddleware"
-	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/middlware/logmiddleware"
+	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/logger"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/storage/postgresstorage"
 	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
 )
 
 const (
@@ -24,38 +23,13 @@ const (
 	сontentTypeAppXGZIP  = "application/x-gzip"
 )
 
-type LinkService interface {
-	GetFulLink(ctx context.Context, ident string) (string, error)
-	GetIdent(ctx context.Context, fulLink string) (string, error)
-	GetIdents(ctx context.Context, linkReq []dto.LinkListReq) ([]dto.LinkListRes, error)
-	GenerateIdent(url string) string
-}
-
-type linkHandler struct {
-	service      LinkService
-	baseShortURL string
-}
-
-func NewLinkHandler(service LinkService, baseShortURL string) *linkHandler {
-	return &linkHandler{
-		service:      service,
-		baseShortURL: baseShortURL,
+func (h *Handler) GetShortLink(res http.ResponseWriter, req *http.Request) {
+	userID, err := getUserID(req.Context())
+	if err != nil {
+		http.Error(res, "failded getting userID", http.StatusBadRequest)
+		return
 	}
-}
 
-func (h *linkHandler) InitRouter() *chi.Mux {
-	router := chi.NewRouter()
-	router.Use(logmiddleware.WithLogging)
-	router.Use(gzipmiddleware.Decompress)
-	router.Use(middleware.Compress(5, "application/json", "text/html"))
-	router.Post("/", h.GetShortLink)
-	router.Post("/api/shorten", h.GetShortLinkByJSON)
-	router.Post("/api/shorten/batch", h.GetShortLinkByListJSON)
-	router.Get("/{ident}", h.GetFulLink)
-	return router
-}
-
-func (h *linkHandler) GetShortLink(res http.ResponseWriter, req *http.Request) {
 	ct := strings.Split(req.Header.Get(сontentType), ";")[0]
 	if !(ct == сontentTypeTextPlain || ct == сontentTypeAppXGZIP) {
 		http.Error(res, "invalid Content-Type", http.StatusBadRequest)
@@ -69,7 +43,7 @@ func (h *linkHandler) GetShortLink(res http.ResponseWriter, req *http.Request) {
 	}
 
 	var status int
-	ident, err := h.service.GetIdent(req.Context(), string(body))
+	ident, err := h.services.GetIdent(req.Context(), string(body), userID)
 	if err != nil {
 		if !errors.Is(err, postgresstorage.ErrConflict) {
 			http.Error(res, err.Error(), http.StatusInternalServerError)
@@ -86,17 +60,27 @@ func (h *linkHandler) GetShortLink(res http.ResponseWriter, req *http.Request) {
 	res.Write([]byte(shortLink))
 }
 
-func (h *linkHandler) GetFulLink(res http.ResponseWriter, req *http.Request) {
-	fulLink, err := h.service.GetFulLink(req.Context(), chi.URLParam(req, "ident"))
+func (h *Handler) GetFulLink(res http.ResponseWriter, req *http.Request) {
+	link, err := h.services.GetFulLink(req.Context(), chi.URLParam(req, "ident"))
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
-	res.Header().Set("Location", fulLink)
+	if link.DeletedFlag {
+		http.Error(res, "resurs deleted", http.StatusGone)
+		return
+	}
+	res.Header().Set("Location", link.FulLink)
 	res.WriteHeader(http.StatusTemporaryRedirect)
 }
 
-func (h *linkHandler) GetShortLinkByJSON(res http.ResponseWriter, req *http.Request) {
+func (h *Handler) GetShortLinkByJSON(res http.ResponseWriter, req *http.Request) {
+	userID, err := getUserID(req.Context())
+	if err != nil {
+		http.Error(res, "failded getting userID", http.StatusBadRequest)
+		return
+	}
+
 	ct := req.Header.Get(сontentType)
 	if !(ct == сontentTypeAppJSON || ct == сontentTypeAppXGZIP) {
 		http.Error(res, "invalid Content-Type", http.StatusBadRequest)
@@ -111,7 +95,7 @@ func (h *linkHandler) GetShortLinkByJSON(res http.ResponseWriter, req *http.Requ
 	}
 
 	var status int
-	ident, err := h.service.GetIdent(req.Context(), request.URL)
+	ident, err := h.services.GetIdent(req.Context(), request.URL, userID)
 	if err != nil {
 		if !errors.Is(err, postgresstorage.ErrConflict) {
 			http.Error(res, err.Error(), http.StatusInternalServerError)
@@ -131,7 +115,13 @@ func (h *linkHandler) GetShortLinkByJSON(res http.ResponseWriter, req *http.Requ
 	}
 }
 
-func (h *linkHandler) GetShortLinkByListJSON(res http.ResponseWriter, req *http.Request) {
+func (h *Handler) GetShortLinkByListJSON(res http.ResponseWriter, req *http.Request) {
+	userID, err := getUserID(req.Context())
+	if err != nil {
+		http.Error(res, "failded getting userID", http.StatusBadRequest)
+		return
+	}
+
 	ct := req.Header.Get(сontentType)
 	if !(ct == сontentTypeAppJSON || ct == сontentTypeAppXGZIP) {
 		http.Error(res, "invalid Content-Type", http.StatusBadRequest)
@@ -140,7 +130,7 @@ func (h *linkHandler) GetShortLinkByListJSON(res http.ResponseWriter, req *http.
 
 	var buf bytes.Buffer
 	var linkReq []dto.LinkListReq
-	_, err := buf.ReadFrom(req.Body)
+	_, err = buf.ReadFrom(req.Body)
 	if err != nil {
 		http.Error(res, "invalid body", http.StatusBadRequest)
 		return
@@ -151,7 +141,7 @@ func (h *linkHandler) GetShortLinkByListJSON(res http.ResponseWriter, req *http.
 		return
 	}
 
-	limkResp, err := h.service.GetIdents(req.Context(), linkReq)
+	limkResp, err := h.services.GetIdents(req.Context(), linkReq, userID)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
@@ -169,4 +159,110 @@ func (h *linkHandler) GetShortLinkByListJSON(res http.ResponseWriter, req *http.
 	res.Header().Set(сontentType, сontentTypeAppJSON)
 	res.WriteHeader(http.StatusCreated)
 	res.Write(response)
+}
+
+func (h *Handler) GetLinksByUser(res http.ResponseWriter, req *http.Request) {
+	userID, err := getUserID(req.Context())
+	if err != nil {
+		http.Error(res, "failded getting userID", http.StatusBadRequest)
+		return
+	}
+
+	linksResp, err := h.services.GetLinksByUserID(req.Context(), userID)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if len(linksResp) == 0 {
+		res.WriteHeader(http.StatusNoContent)
+	}
+	for i, v := range linksResp {
+		linksResp[i].ShortURL = h.baseShortURL + "/" + v.ShortURL
+	}
+	response, err := json.Marshal(&linksResp)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	res.Header().Set(сontentType, сontentTypeAppJSON)
+	res.WriteHeader(http.StatusOK)
+	res.Write(response)
+}
+
+func (h *Handler) DeleteLinksByIdents(res http.ResponseWriter, req *http.Request) {
+	userID, err := getUserID(req.Context())
+	if err != nil {
+		http.Error(res, "failded getting userID", http.StatusBadRequest)
+		return
+	}
+
+	ct := req.Header.Get(сontentType)
+	if !(ct == сontentTypeAppJSON || ct == сontentTypeAppXGZIP) {
+		http.Error(res, "invalid Content-Type", http.StatusBadRequest)
+		return
+	}
+
+	var request []string
+
+	if err := json.NewDecoder(req.Body).Decode(&request); err != nil {
+		http.Error(res, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	can, err := h.services.CanDelete(req.Context(), userID, request...)
+
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if !can {
+		http.Error(res, "forbidden", http.StatusForbidden)
+		return
+	}
+
+	h.delChan <- delMesage{
+		idents: request,
+	}
+
+	res.WriteHeader(http.StatusAccepted)
+}
+
+func (h *Handler) flushMessagesDelete(stop <-chan bool) {
+	ticker := time.NewTicker(5 * time.Second)
+	identsBuf := make([]string, 0)
+	for {
+		select {
+		case msg := <-h.delChan:
+			identsBuf = append(identsBuf, msg.idents...)
+		case <-ticker.C:
+			if len(identsBuf) == 0 {
+				continue
+			}
+			err := h.services.DeleteLinksByIdent(context.Background(), identsBuf...)
+			if err != nil {
+				logger.Log().Debug("cannot delete links")
+				continue
+			}
+			identsBuf = identsBuf[:0]
+		case <-stop:
+			close(h.delChan)
+			for msg := range h.delChan {
+				identsBuf = append(identsBuf, msg.idents...)
+			}
+			if len(identsBuf) == 0 {
+				return
+			}
+			err := h.services.DeleteLinksByIdent(context.Background(), identsBuf...)
+			if err != nil {
+				logger.Log().Debug("cannot delete links when stop")
+				return
+			}
+		}
+	}
+}
+
+func (h *Handler) FlushMessagesDeleteNow() {
+	h.stopChan <- true
+	close(h.stopChan) 
 }

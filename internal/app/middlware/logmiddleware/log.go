@@ -28,7 +28,7 @@ func (res *logginResponseWriter) WriteHeader(statusCode int) {
 	res.responseData.status = statusCode
 }
 
-func WithLogging(h http.Handler) http.Handler {
+func WithLogging(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		start := time.Now()
 		responseData := &responseData{
@@ -39,7 +39,7 @@ func WithLogging(h http.Handler) http.Handler {
 			ResponseWriter: res,
 			responseData:   responseData,
 		}
-		h.ServeHTTP(&lRes, req)
+		next.ServeHTTP(&lRes, req)
 		duration := time.Since(start)
 
 		logger.Log().Sugar().Infoln(
