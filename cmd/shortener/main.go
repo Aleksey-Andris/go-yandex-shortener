@@ -10,6 +10,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/jmoiron/sqlx"
+
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/configs"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/delivery/handlers"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/domain"
@@ -17,7 +19,6 @@ import (
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/service"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/storage/hashmapstorage"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/storage/postgresstorage"
-	"github.com/jmoiron/sqlx"
 )
 
 func main() {

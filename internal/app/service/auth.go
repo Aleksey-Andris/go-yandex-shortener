@@ -66,5 +66,5 @@ func (s *authService) BuildJWTString(userID int32) (string, error) {
 }
 
 func (s *authService) CreateUser(ctx context.Context) (int32, error) {
-   return s.storage.CreateUser(ctx)
+	return s.storage.CreateUser(ctx)
 }

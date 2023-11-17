@@ -4,9 +4,10 @@ import (
 	context "context"
 	reflect "reflect"
 
+	gomock "go.uber.org/mock/gomock"
+
 	domain "github.com/Aleksey-Andris/go-yandex-shortener/internal/app/domain"
 	dto "github.com/Aleksey-Andris/go-yandex-shortener/internal/app/dto"
-	gomock "go.uber.org/mock/gomock"
 )
 
 // MockLinkStorage is a mock of LinkStorage interface.

@@ -10,10 +10,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-chi/chi"
+
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/dto"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/logger"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/storage/postgresstorage"
-	"github.com/go-chi/chi"
 )
 
 const (
@@ -264,5 +265,5 @@ func (h *Handler) flushMessagesDelete(stop <-chan bool) {
 
 func (h *Handler) FlushMessagesDeleteNow() {
 	h.stopChan <- true
-	close(h.stopChan) 
+	close(h.stopChan)
 }

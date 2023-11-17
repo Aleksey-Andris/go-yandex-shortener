@@ -6,9 +6,10 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/speps/go-hashids"
+
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/domain"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/dto"
-	"github.com/speps/go-hashids"
 )
 
 const (

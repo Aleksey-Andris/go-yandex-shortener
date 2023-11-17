@@ -15,14 +15,15 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/domain"
-	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/dto"
-	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/mock/mockservice"
-	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/storage/hashmapstorage"
 	"github.com/go-chi/chi"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+
+	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/domain"
+	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/dto"
+	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/mock/mockservice"
+	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/storage/hashmapstorage"
 )
 
 func Test_Handler_GetShortLink(t *testing.T) {
@@ -562,7 +563,7 @@ func BenchmarkGetShortLink(b *testing.B) {
 	servises := NewServices(linkStorage, userStorage)
 	handler := NewHandler(servises, "http://localhost:8080")
 
-b.ResetTimer()
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
 		newRequestBody := requestBody + strconv.Itoa(int(random.Int63()))
@@ -619,7 +620,7 @@ func BenchmarkGetLinksByUser(b *testing.B) {
 		ident := ident + strconv.Itoa(i)
 		fulLink := fulLink + strconv.Itoa(i)
 		link := domain.Link{
-			UserID:      int32(userID),
+			UserID:  int32(userID),
 			Ident:   ident,
 			FulLink: fulLink,
 		}
@@ -629,12 +630,12 @@ func BenchmarkGetLinksByUser(b *testing.B) {
 		ident := ident + strconv.Itoa(i)
 		fulLink := fulLink + strconv.Itoa(i)
 		link := domain.Link{
-			UserID:      int32(i),
+			UserID:  int32(i),
 			Ident:   ident,
 			FulLink: fulLink,
 		}
 		linkMap[link.Ident] = link
-	} 
+	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
