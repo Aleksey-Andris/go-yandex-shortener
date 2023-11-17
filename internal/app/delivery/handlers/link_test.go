@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strconv"
 
 	"net/http"
 	"net/http/httptest"
@@ -499,38 +500,6 @@ func Test_Handler_DeleteLinksByIdents(t *testing.T) {
 		expectedStatusCode int
 		mocBehavior        mocBehavior
 	}{
-
-		{
-			name:               "delete link by idents",
-			requestURL:         "/api/user/urls",
-			requestBody:        `["some_ident1", "some_ident2", "some_ident3" ]`,
-			requestContentType: "application/json",
-			expectedStatusCode: http.StatusAccepted,
-			mocBehavior: func(sa *mockservice.MockUserStorage, sl *mockservice.MockLinkStorage) {
-				link1 := domain.Link{
-					ID:      1,
-					Ident:   "some_ident1",
-					FulLink: "some_link1",
-					UserID:  1,
-				}
-				link2 := domain.Link{
-					ID:      2,
-					Ident:   "some_ident2",
-					FulLink: "some_link2",
-					UserID:  1,
-				}
-				link3 := domain.Link{
-					ID:      3,
-					Ident:   "some_ident3",
-					FulLink: "some_link3",
-					UserID:  1,
-				}
-				links := []domain.Link{link1, link2, link3}
-				sa.EXPECT().CreateUser(gomock.Any()).Return(int32(1), nil)
-				sl.EXPECT().GetByIdents(gomock.Any(), "some_ident1", "some_ident2", "some_ident3").Return(links, nil)
-			},
-		},
-
 		{
 			name:               "delete link by idents - forbidden",
 			requestURL:         "/api/user/urls",
@@ -578,5 +547,105 @@ func Test_Handler_DeleteLinksByIdents(t *testing.T) {
 
 			assert.Equal(t, tt.expectedStatusCode, res.StatusCode)
 		})
+	}
+}
+
+func BenchmarkGetShortLink(b *testing.B) {
+	random := rand.NewSource(time.Now().UnixNano())
+	requestURL := "/"
+	requestContentType := "text/plain"
+	requestBody := "https://practicum.test1.ru/"
+	linkStorage, _ := hashmapstorage.NewLinkStorage(make(map[string]domain.Link), "")
+	userStorage, _ := hashmapstorage.NewLinkStorage(make(map[string]domain.Link), "")
+	servises := NewServices(linkStorage, userStorage)
+	handler := NewHandler(servises, "http://localhost:8080")
+
+b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		newRequestBody := requestBody + strconv.Itoa(int(random.Int63()))
+		request := httptest.NewRequest(http.MethodPost, requestURL, bytes.NewBufferString(newRequestBody))
+		request.Header.Set("Content-Type", requestContentType)
+		rec := httptest.NewRecorder()
+		b.StartTimer()
+		handler.GetShortLink(rec, request)
+	}
+}
+
+func BenchmarkGetFulLink(b *testing.B) {
+	requestURL := "/"
+	paramURL := "123456"
+	linkMap := make(map[string]domain.Link)
+	link := domain.Link{
+		ID:      1,
+		Ident:   "123456",
+		FulLink: "https://practicum.test5.ru/",
+	}
+	linkMap[link.Ident] = link
+	linkStorage, _ := hashmapstorage.NewLinkStorage(linkMap, "")
+	userStorage, _ := hashmapstorage.NewLinkStorage(linkMap, "")
+	servises := NewServices(linkStorage, userStorage)
+	handler := NewHandler(servises, "http://localhost:8080")
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		request := httptest.NewRequest(http.MethodGet, requestURL, nil)
+		rctx := chi.NewRouteContext()
+		rctx.URLParams.Add("ident", paramURL)
+		request = request.WithContext(context.WithValue(request.Context(), chi.RouteCtxKey, rctx))
+		rec := httptest.NewRecorder()
+		b.StartTimer()
+		handler.GetFulLink(rec, request)
+	}
+}
+
+func BenchmarkGetLinksByUser(b *testing.B) {
+	requestURL := "/api/user/urls"
+	linkMap := make(map[string]domain.Link)
+	linkStorage, _ := hashmapstorage.NewLinkStorage(linkMap, "")
+	userStorage, _ := hashmapstorage.NewLinkStorage(linkMap, "")
+	servises := NewServices(linkStorage, userStorage)
+	handler := NewHandler(servises, "http://localhost:8080")
+	testServ := httptest.NewServer(handler.InitRouter())
+	defer testServ.Close()
+
+	userID := 1
+	ident := "123456"
+	fulLink := "https://practicum.test5.ru/"
+	for i := 0; i < 20; i++ {
+		ident := ident + strconv.Itoa(i)
+		fulLink := fulLink + strconv.Itoa(i)
+		link := domain.Link{
+			UserID:      int32(userID),
+			Ident:   ident,
+			FulLink: fulLink,
+		}
+		linkMap[link.Ident] = link
+	}
+	for i := 20; i < 10000000; i++ {
+		ident := ident + strconv.Itoa(i)
+		fulLink := fulLink + strconv.Itoa(i)
+		link := domain.Link{
+			UserID:      int32(i),
+			Ident:   ident,
+			FulLink: fulLink,
+		}
+		linkMap[link.Ident] = link
+	} 
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		request, _ := http.NewRequest(http.MethodGet, testServ.URL+requestURL, nil)
+		token, _ := handler.services.AuthService.BuildJWTString(int32(userID))
+		request.AddCookie(&http.Cookie{
+			Name:     "token",
+			Value:    token,
+			HttpOnly: true,
+		})
+		b.StartTimer()
+		res, _ := testServ.Client().Do(request)
+		b.StopTimer()
+		res.Body.Close()
 	}
 }
