@@ -17,7 +17,7 @@ type UserStorage interface {
 	CreateUser(ctx context.Context) (int32, error)
 }
 
-type tokenClaims struct {
+type TokenClaims struct {
 	jwt.RegisteredClaims
 	UserID int32
 }
@@ -33,7 +33,7 @@ func NewAauthService(userStorage UserStorage) *authService {
 }
 
 func (s *authService) ParseToken(tokenString string) (int32, bool, error) {
-	claims := &tokenClaims{}
+	claims := &TokenClaims{}
 	token, err := jwt.ParseWithClaims(tokenString, claims,
 		func(t *jwt.Token) (interface{}, error) {
 			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -50,7 +50,7 @@ func (s *authService) ParseToken(tokenString string) (int32, bool, error) {
 }
 
 func (s *authService) BuildJWTString(userID int32) (string, error) {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, tokenClaims{
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, TokenClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(tokenExp)),
 		},
