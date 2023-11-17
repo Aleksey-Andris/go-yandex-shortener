@@ -18,8 +18,8 @@ jobs:
         uses: robinraju/release-downloader@v1.7
         with:
           repository: Yandex-Practicum/go-autotests
-          latest: true
           tag: refactor
+          fileName: statictest
           out-file-path: .tools
           token: ${{ secrets.GITHUB_TOKEN }}
 
