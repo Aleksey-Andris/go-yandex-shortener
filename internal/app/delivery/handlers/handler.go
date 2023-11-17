@@ -3,13 +3,14 @@ package handlers
 import (
 	"context"
 
+	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
+
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/domain"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/dto"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/middlware/gzipmiddleware"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/middlware/logmiddleware"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/service"
-	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
 )
 
 type delMesage struct {

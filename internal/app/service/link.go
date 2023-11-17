@@ -4,10 +4,12 @@ import (
 	"context"
 	"crypto/md5"
 	"math/rand"
+	"time"
+
+	"github.com/speps/go-hashids"
 
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/domain"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/dto"
-	"github.com/speps/go-hashids"
 )
 
 const (
@@ -85,6 +87,7 @@ func (s *linkService) CanDelete(ctx context.Context, userID int32, idents ...str
 }
 
 func (s *linkService) GenerateIdent(url string) string {
+	rand.NewSource(time.Now().UnixNano())
 	hash := md5.New()
 	hash.Write([]byte(url))
 	hd := hashids.NewData()

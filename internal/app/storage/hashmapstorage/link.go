@@ -93,7 +93,7 @@ func (s *linkStorage) CreateLinks(ctx context.Context, links []domain.Link, user
 func (s *linkStorage) GetLinksByUserID(ctx context.Context, userID int32) ([]dto.LinkListByUserIDRes, error) {
 	s.RLock()
 	defer s.RUnlock()
-	var linkListByUserIDRes []dto.LinkListByUserIDRes
+	linkListByUserIDRes := make([]dto.LinkListByUserIDRes, 0)
 	for _, v := range s.linkMap {
 		if v.UserID == userID && !v.DeletedFlag {
 			linkListByUserIDRes = append(linkListByUserIDRes, dto.LinkListByUserIDRes{
