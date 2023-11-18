@@ -1,3 +1,4 @@
+// The postgresstorage package contains code for working with storage based on Postgres.
 package postgresstorage
 
 import (
@@ -18,8 +19,10 @@ const (
 	isDeleted   = "is_deleted"
 )
 
+// ErrConflict - error when violating a unique constraint.
 var ErrConflict = errors.New("data conflict")
 
+// NewLinkStorage - returns *sqlx.DB.
 func NewPostgresDB(cfg string) (*sqlx.DB, error) {
 	db, err := sqlx.Open("pgx", cfg)
 	if err != nil {

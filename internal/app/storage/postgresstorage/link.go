@@ -18,11 +18,13 @@ type linkStorage struct {
 	db *sqlx.DB
 }
 
+// NewLinkStorage - constructor for linkStorage.
 func NewLinkStorage(db *sqlx.DB) (*linkStorage, error) {
 	s := &linkStorage{db: db}
 	return s, nil
 }
 
+// GetOneByIdent - returns the link entity short ident.
 func (s *linkStorage) GetOneByIdent(ctx context.Context, ident string) (domain.Link, error) {
 	var link domain.Link
 	query := fmt.Sprintf("SELECT * FROM %s WHERE %s = $1;", linkTable, shortURL)
@@ -30,6 +32,7 @@ func (s *linkStorage) GetOneByIdent(ctx context.Context, ident string) (domain.L
 	return link, err
 }
 
+// Create - create the link entity.
 func (s *linkStorage) Create(ctx context.Context, ident, fulLink string, userID int32) (domain.Link, error) {
 	var link domain.Link
 
@@ -51,6 +54,7 @@ func (s *linkStorage) Create(ctx context.Context, ident, fulLink string, userID 
 	return link, err
 }
 
+// CreateLinks - create the link entityes.
 func (s *linkStorage) CreateLinks(ctx context.Context, links []domain.Link, userID int32) error {
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -76,6 +80,7 @@ func (s *linkStorage) CreateLinks(ctx context.Context, links []domain.Link, user
 	return nil
 }
 
+// GetLinksByUserID - returns all user's links.
 func (s *linkStorage) GetLinksByUserID(ctx context.Context, userID int32) ([]dto.LinkListByUserIDRes, error) {
 	var linkListByUserIDRes []dto.LinkListByUserIDRes
 	query := fmt.Sprintf("SELECT %s, %s FROM %s WHERE %s = $1 AND %s = $2;", shortURL, originalURL, linkTable, userIDStor, isDeleted)
@@ -83,6 +88,7 @@ func (s *linkStorage) GetLinksByUserID(ctx context.Context, userID int32) ([]dto
 	return linkListByUserIDRes, err
 }
 
+// DeleteLinksByIdent - removes links by their idents.
 func (s *linkStorage) DeleteByIdents(ctx context.Context, idents ...string) error {
 	var values []string
 	var args []any
@@ -96,6 +102,7 @@ func (s *linkStorage) DeleteByIdents(ctx context.Context, idents ...string) erro
 	return err
 }
 
+// GetByIdents - returns links by their idents.
 func (s *linkStorage) GetByIdents(ctx context.Context, idents ...string) ([]domain.Link, error) {
 	var values []string
 	var args []any
@@ -110,6 +117,7 @@ func (s *linkStorage) GetByIdents(ctx context.Context, idents ...string) ([]doma
 	return links, err
 }
 
+// Close - safely stops the database.
 func (s *linkStorage) Close() error {
 	return s.db.Close()
 }

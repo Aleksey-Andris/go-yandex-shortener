@@ -24,6 +24,7 @@ const (
 	сontentTypeAppXGZIP  = "application/x-gzip"
 )
 
+// GetShortLink - URL shortening http request handler.
 func (h *Handler) GetShortLink(res http.ResponseWriter, req *http.Request) {
 	userID, err := getUserID(req.Context())
 	if err != nil {
@@ -60,7 +61,7 @@ func (h *Handler) GetShortLink(res http.ResponseWriter, req *http.Request) {
 	res.WriteHeader(status)
 	res.Write([]byte(shortLink))
 }
-
+// GetFulLink - handler for http request to get full link.
 func (h *Handler) GetFulLink(res http.ResponseWriter, req *http.Request) {
 	link, err := h.services.GetFulLink(req.Context(), chi.URLParam(req, "ident"))
 	if err != nil {
@@ -75,6 +76,7 @@ func (h *Handler) GetFulLink(res http.ResponseWriter, req *http.Request) {
 	res.WriteHeader(http.StatusTemporaryRedirect)
 }
 
+// GetShortLinkByJSON - handler for http request to get short link by json.
 func (h *Handler) GetShortLinkByJSON(res http.ResponseWriter, req *http.Request) {
 	userID, err := getUserID(req.Context())
 	if err != nil {
@@ -116,6 +118,7 @@ func (h *Handler) GetShortLinkByJSON(res http.ResponseWriter, req *http.Request)
 	}
 }
 
+// GetShortLinkByListJSON - handler for http request to get many short links by json.
 func (h *Handler) GetShortLinkByListJSON(res http.ResponseWriter, req *http.Request) {
 	userID, err := getUserID(req.Context())
 	if err != nil {
@@ -162,6 +165,7 @@ func (h *Handler) GetShortLinkByListJSON(res http.ResponseWriter, req *http.Requ
 	res.Write(response)
 }
 
+// GetLinksByUser - handler for http request to get all user's links.
 func (h *Handler) GetLinksByUser(res http.ResponseWriter, req *http.Request) {
 	userID, err := getUserID(req.Context())
 	if err != nil {
@@ -190,6 +194,7 @@ func (h *Handler) GetLinksByUser(res http.ResponseWriter, req *http.Request) {
 	res.Write(response)
 }
 
+// DeleteLinksByIdents - handler for http request to delete links.
 func (h *Handler) DeleteLinksByIdents(res http.ResponseWriter, req *http.Request) {
 	userID, err := getUserID(req.Context())
 	if err != nil {
@@ -263,6 +268,7 @@ func (h *Handler) flushMessagesDelete(stop <-chan bool) {
 	}
 }
 
+// FlushMessagesDeleteNow - method to process all delete requests immediately.
 func (h *Handler) FlushMessagesDeleteNow() {
 	h.stopChan <- true
 	close(h.stopChan)

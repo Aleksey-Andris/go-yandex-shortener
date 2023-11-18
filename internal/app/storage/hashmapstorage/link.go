@@ -1,3 +1,4 @@
+// The hashmapstorage package contains code for working with storage based on RAM or file.
 package hashmapstorage
 
 import (
@@ -23,6 +24,9 @@ type linkStorage struct {
 	seqUserID int32
 }
 
+// NewLinkStorage - constructor for linkStorage.
+// filePath - path to the file in which the data will be stored.
+// Pass filePath == "" if you need to use only RAM.
 func NewLinkStorage(linkMap map[string]domain.Link, filePath string) (*linkStorage, error) {
 
 	storage := &linkStorage{
@@ -39,6 +43,7 @@ func NewLinkStorage(linkMap map[string]domain.Link, filePath string) (*linkStora
 	return storage, nil
 }
 
+// GetOneByIdent - returns the link entity short ident.
 func (s *linkStorage) GetOneByIdent(ctx context.Context, ident string) (domain.Link, error) {
 	s.RLock()
 	defer s.RUnlock()
@@ -50,6 +55,7 @@ func (s *linkStorage) GetOneByIdent(ctx context.Context, ident string) (domain.L
 	return link, nil
 }
 
+// Create - create the link entity.
 func (s *linkStorage) Create(ctx context.Context, ident, fulLink string, userID int32) (domain.Link, error) {
 	s.Lock()
 	defer s.Unlock()
@@ -70,6 +76,7 @@ func (s *linkStorage) Create(ctx context.Context, ident, fulLink string, userID 
 	return link, nil
 }
 
+// CreateLinks - create the link entityes.
 func (s *linkStorage) CreateLinks(ctx context.Context, links []domain.Link, userID int32) error {
 	s.Lock()
 	defer s.Unlock()
@@ -90,6 +97,7 @@ func (s *linkStorage) CreateLinks(ctx context.Context, links []domain.Link, user
 	return nil
 }
 
+// GetLinksByUserID - returns all user's links.
 func (s *linkStorage) GetLinksByUserID(ctx context.Context, userID int32) ([]dto.LinkListByUserIDRes, error) {
 	s.RLock()
 	defer s.RUnlock()
@@ -105,6 +113,7 @@ func (s *linkStorage) GetLinksByUserID(ctx context.Context, userID int32) ([]dto
 	return linkListByUserIDRes, nil
 }
 
+// DeleteLinksByIdent - removes links by their idents.
 func (s *linkStorage) DeleteByIdents(ctx context.Context, idents ...string) error {
 	s.Lock()
 	defer s.Unlock()
@@ -118,6 +127,7 @@ func (s *linkStorage) DeleteByIdents(ctx context.Context, idents ...string) erro
 	return nil
 }
 
+// GetByIdents - returns links by their idents.
 func (s *linkStorage) GetByIdents(ctx context.Context, idents ...string) ([]domain.Link, error) {
 	s.RLock()
 	defer s.RUnlock()
@@ -157,6 +167,7 @@ func (s *linkStorage) loadFromFile() error {
 	return nil
 }
 
+// Close - safely stops the database.
 func (s *linkStorage) Close() error {
 	if s.file == nil {
 		return nil
@@ -164,6 +175,7 @@ func (s *linkStorage) Close() error {
 	return s.file.Close()
 }
 
+// CreateUser - user creating method.
 func (s *linkStorage) CreateUser(ctx context.Context) (int32, error) {
 	s.Lock()
 	defer s.Unlock()
