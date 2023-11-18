@@ -11,6 +11,7 @@ import (
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/storage/hashmapstorage"
 )
 
+// Example - example for using all enpoints.
 func Example() {
 	//Preparing the server infrastructure.
 	linkMap := make(map[string]domain.Link)

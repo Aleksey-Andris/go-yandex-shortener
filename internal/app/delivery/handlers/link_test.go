@@ -26,6 +26,7 @@ import (
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/storage/hashmapstorage"
 )
 
+// Test_Handler_GetShortLink - tests for GetShortLink handler
 func Test_Handler_GetShortLink(t *testing.T) {
 	tests := []struct {
 		name               string
@@ -90,6 +91,7 @@ func Test_Handler_GetShortLink(t *testing.T) {
 	}
 }
 
+// Test_Handler_GetFulLink - tests for GetFulLink handler
 func Test_Handler_GetFulLink(t *testing.T) {
 	tests := []struct {
 		name               string
@@ -161,6 +163,7 @@ func Test_Handler_GetFulLink(t *testing.T) {
 	}
 }
 
+// Test_Handler_GetShortLinkByJson - tests for GetShortLinkByJson handler
 func Test_Handler_GetShortLinkByJson(t *testing.T) {
 	c := gomock.NewController(t)
 	defer c.Finish()
@@ -285,6 +288,7 @@ func Test_Handler_GetShortLinkByJson(t *testing.T) {
 	}
 }
 
+// Test_Handler_GetShortLinkByListJSON - tests for GetShortLinkByListJSON handler
 func Test_Handler_GetShortLinkByListJSON(t *testing.T) {
 	c := gomock.NewController(t)
 	defer c.Finish()
@@ -408,6 +412,7 @@ func Test_Handler_GetShortLinkByListJSON(t *testing.T) {
 	}
 }
 
+// Test_Handler_GetLinksByUser - tests for GetLinksByUser handler
 func Test_Handler_GetLinksByUser(t *testing.T) {
 	c := gomock.NewController(t)
 	defer c.Finish()
@@ -485,6 +490,7 @@ func Test_Handler_GetLinksByUser(t *testing.T) {
 	}
 }
 
+// Test_Handler_DeleteLinksByIdents - tests for DeleteLinksByIdents handler
 func Test_Handler_DeleteLinksByIdents(t *testing.T) {
 	c := gomock.NewController(t)
 	defer c.Finish()
@@ -553,6 +559,7 @@ func Test_Handler_DeleteLinksByIdents(t *testing.T) {
 	}
 }
 
+// BenchmarkGetShortLink - benchmark for GetShortLink handler
 func BenchmarkGetShortLink(b *testing.B) {
 	random := rand.NewSource(time.Now().UnixNano())
 	requestURL := "/"
@@ -575,6 +582,7 @@ func BenchmarkGetShortLink(b *testing.B) {
 	}
 }
 
+// BenchmarkGetFulLink - benchmark for GetFulLink handler
 func BenchmarkGetFulLink(b *testing.B) {
 	requestURL := "/"
 	paramURL := "123456"
@@ -603,6 +611,7 @@ func BenchmarkGetFulLink(b *testing.B) {
 	}
 }
 
+// BenchmarkGetLinksByUser - benchmark for GetLinksByUser  handler
 func BenchmarkGetLinksByUser(b *testing.B) {
 	requestURL := "/api/user/urls"
 	linkMap := make(map[string]domain.Link)
