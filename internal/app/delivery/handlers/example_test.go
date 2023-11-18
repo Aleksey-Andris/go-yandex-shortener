@@ -43,6 +43,7 @@ func Example() {
 	request.Header.Set("Content-Type", "text/plain")
 	res, _ := testServ.Client().Do(request)
 	fmt.Println(res.Status)
+	res.Body.Close()
 
 	//Example request for "GET: ...//{ident}".
 	request, _ = http.NewRequest(http.MethodGet, testServ.URL+"/123456", nil)
@@ -54,6 +55,7 @@ func Example() {
 	})
 	res, _ = testServ.Client().Do(request)
 	fmt.Println(res.Status)
+	res.Body.Close()
 
 	// Example request for "POST: .../api/shorten".
 	request, _ = http.NewRequest(http.MethodPost, testServ.URL+"/api/shorten", bytes.NewBufferString(`{"url": "https://practicum.test.ru/"}`))
@@ -65,6 +67,7 @@ func Example() {
 	})
 	res, _ = testServ.Client().Do(request)
 	fmt.Println(res.Status)
+	res.Body.Close()
 
 	// Example request for "POST: .../api/shorten/batch".
 	request, _ = http.NewRequest(http.MethodPost, testServ.URL+"/api/shorten/batch",
@@ -78,6 +81,7 @@ func Example() {
 	})
 	res, _ = testServ.Client().Do(request)
 	fmt.Println(res.Status)
+	res.Body.Close()
 
 	// Example request for "GET: .../api/user/urls".
 	request, _ = http.NewRequest(http.MethodGet, testServ.URL+"/api/user/urls", nil)
@@ -89,6 +93,7 @@ func Example() {
 	})
 	res, _ = testServ.Client().Do(request)
 	fmt.Println(res.Status)
+	res.Body.Close()
 
 	// Example request for "DELETE: ...///api/user/urls".
 	request, _ = http.NewRequest(http.MethodDelete, testServ.URL+"/api/user/urls", bytes.NewBufferString(`["123456"]`))
@@ -101,6 +106,7 @@ func Example() {
 	})
 	res, _ = testServ.Client().Do(request)
 	fmt.Println(res.Status)
+	res.Body.Close()
 
 	// Output:
 	// 201 Created
