@@ -19,6 +19,7 @@ func NewUserStorage(db *sqlx.DB) (*userStorage, error) {
 	s := &userStorage{db: db}
 	return s, nil
 }
+
 // CreateUser - user creating method.
 func (s *userStorage) CreateUser(ctx context.Context) (int32, error) {
 	tx, err := s.db.Begin()

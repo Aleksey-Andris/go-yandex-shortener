@@ -61,6 +61,7 @@ func (h *Handler) GetShortLink(res http.ResponseWriter, req *http.Request) {
 	res.WriteHeader(status)
 	res.Write([]byte(shortLink))
 }
+
 // GetFulLink - handler for http request to get full link.
 func (h *Handler) GetFulLink(res http.ResponseWriter, req *http.Request) {
 	link, err := h.services.GetFulLink(req.Context(), chi.URLParam(req, "ident"))

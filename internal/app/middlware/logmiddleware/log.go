@@ -24,6 +24,7 @@ func (res *logginResponseWriter) Write(b []byte) (int, error) {
 	res.responseData.size += size
 	return size, err
 }
+
 // WriteHeader - uses the basic method.
 func (res *logginResponseWriter) WriteHeader(statusCode int) {
 	res.ResponseWriter.WriteHeader(statusCode)

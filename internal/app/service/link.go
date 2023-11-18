@@ -54,7 +54,7 @@ func (s *linkService) GetIdent(ctx context.Context, fulLink string, userID int32
 	return link.Ident, err
 }
 
-	// GetIdents - returns the short links by the full URLs.
+// GetIdents - returns the short links by the full URLs.
 func (s *linkService) GetIdents(ctx context.Context, linkReq []dto.LinkListReq, userID int32) ([]dto.LinkListRes, error) {
 	result := make([]dto.LinkListRes, 0)
 	links := make([]domain.Link, 0)
