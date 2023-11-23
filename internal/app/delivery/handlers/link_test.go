@@ -7,7 +7,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/rand"
 	"strconv"
+	"time"
 
 	"net/http"
 	"net/http/httptest"
@@ -557,7 +559,6 @@ func Test_Handler_DeleteLinksByIdents(t *testing.T) {
 	}
 }
 
-/*
 // BenchmarkGetShortLink - benchmark for GetShortLink handler
 func BenchmarkGetShortLink(b *testing.B) {
 	random := rand.NewSource(time.Now().UnixNano())
@@ -608,7 +609,7 @@ func BenchmarkGetFulLink(b *testing.B) {
 		b.StartTimer()
 		handler.GetFulLink(rec, request)
 	}
-} */
+}
 
 // BenchmarkGetLinksByUser - benchmark for GetLinksByUser  handler
 func BenchmarkGetLinksByUser(b *testing.B) {
