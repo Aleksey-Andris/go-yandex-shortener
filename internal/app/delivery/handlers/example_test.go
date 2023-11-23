@@ -14,9 +14,10 @@ import (
 // Example - example for using all enpoints.
 func Example() {
 	//Preparing the server infrastructure.
-	linkMap := make(map[string]domain.Link)
-	linkStorage, _ := hashmapstorage.NewLinkStorage(linkMap, "")
-	userStorage, _ := hashmapstorage.NewLinkStorage(linkMap, "")
+	linkMap := make(map[string]*domain.Link)
+	linkByUserIDMap := make(map[int32][]*domain.Link)
+	linkStorage, _ := hashmapstorage.NewLinkStorage(linkMap, linkByUserIDMap, "")
+	userStorage, _ := hashmapstorage.NewLinkStorage(linkMap, linkByUserIDMap, "")
 	servises := NewServices(linkStorage, userStorage)
 	handler := NewHandler(servises, "http://localhost:8080")
 	testServ := httptest.NewServer(handler.InitRouter())
@@ -28,15 +29,16 @@ func Example() {
 	defer testServ.Close()
 
 	//Preparing data.
-	userID := 1
+	userID := int32(1)
 	ident := "123456"
 	fulLink := "https://practicum.test5.ru/"
 	link := domain.Link{
-		UserID:  int32(userID),
+		UserID:  userID,
 		Ident:   ident,
 		FulLink: fulLink,
 	}
-	linkMap[link.Ident] = link
+	linkMap[link.Ident] = &link
+	linkByUserIDMap[userID] = []*domain.Link{&link}
 	token, _ := handler.services.AuthService.BuildJWTString(int32(userID))
 
 	//Example request for "POST: .../"

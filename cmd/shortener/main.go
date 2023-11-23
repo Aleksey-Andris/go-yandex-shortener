@@ -34,11 +34,11 @@ func main() {
 	var db *sqlx.DB
 	var err error
 	if flagConfigDB == "" {
-		linkStorage, err = hashmapstorage.NewLinkStorage(make(map[string]domain.Link), flagFileStoragePath)
+		linkStorage, err = hashmapstorage.NewLinkStorage(make(map[string]*domain.Link), make(map[int32][]*domain.Link), flagFileStoragePath)
 		if err != nil {
 			logger.Log().Fatal(err.Error())
 		}
-		userStorage, err = hashmapstorage.NewLinkStorage(make(map[string]domain.Link), flagFileStoragePath)
+		userStorage, err = hashmapstorage.NewLinkStorage(make(map[string]*domain.Link), make(map[int32][]*domain.Link), flagFileStoragePath)
 		if err != nil {
 			logger.Log().Fatal(err.Error())
 		}

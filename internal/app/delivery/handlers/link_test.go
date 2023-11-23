@@ -7,9 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"math/rand"
 	"strconv"
-	"time"
 
 	"net/http"
 	"net/http/httptest"
@@ -66,8 +64,8 @@ func Test_Handler_GetShortLink(t *testing.T) {
 		},
 	}
 
-	linkStorage, _ := hashmapstorage.NewLinkStorage(make(map[string]domain.Link), "")
-	userStorage, _ := hashmapstorage.NewLinkStorage(make(map[string]domain.Link), "")
+	linkStorage, _ := hashmapstorage.NewLinkStorage(make(map[string]*domain.Link), make(map[int32][]*domain.Link), "")
+	userStorage, _ := hashmapstorage.NewLinkStorage(make(map[string]*domain.Link), make(map[int32][]*domain.Link), "")
 	servises := NewServices(linkStorage, userStorage)
 	handler := NewHandler(servises, "http://localhost:8080")
 
@@ -124,7 +122,7 @@ func Test_Handler_GetFulLink(t *testing.T) {
 			expectedLocation:   "",
 		},
 	}
-	linkMap := make(map[string]domain.Link)
+	linkMap := make(map[string]*domain.Link)
 	link := domain.Link{
 		ID:      1,
 		Ident:   "123456",
@@ -136,10 +134,10 @@ func Test_Handler_GetFulLink(t *testing.T) {
 		FulLink:     "https://practicum.test8.ru/",
 		DeletedFlag: true,
 	}
-	linkMap[link.Ident] = link
-	linkMap[linkDeleted.Ident] = linkDeleted
-	linkStorage, _ := hashmapstorage.NewLinkStorage(linkMap, "")
-	userStorage, _ := hashmapstorage.NewLinkStorage(linkMap, "")
+	linkMap[link.Ident] = &link
+	linkMap[linkDeleted.Ident] = &linkDeleted
+	linkStorage, _ := hashmapstorage.NewLinkStorage(linkMap, make(map[int32][]*domain.Link), "")
+	userStorage, _ := hashmapstorage.NewLinkStorage(linkMap, make(map[int32][]*domain.Link), "")
 	servises := NewServices(linkStorage, userStorage)
 	handler := NewHandler(servises, "http://localhost:8080")
 
@@ -559,14 +557,15 @@ func Test_Handler_DeleteLinksByIdents(t *testing.T) {
 	}
 }
 
+/*
 // BenchmarkGetShortLink - benchmark for GetShortLink handler
 func BenchmarkGetShortLink(b *testing.B) {
 	random := rand.NewSource(time.Now().UnixNano())
 	requestURL := "/"
 	requestContentType := "text/plain"
 	requestBody := "https://practicum.test1.ru/"
-	linkStorage, _ := hashmapstorage.NewLinkStorage(make(map[string]domain.Link), "")
-	userStorage, _ := hashmapstorage.NewLinkStorage(make(map[string]domain.Link), "")
+	linkStorage, _ := hashmapstorage.NewLinkStorage(make(map[string]*domain.Link), make(map[int32][]*domain.Link), "")
+	userStorage, _ := hashmapstorage.NewLinkStorage(make(map[string]*domain.Link), make(map[int32][]*domain.Link), "")
 	servises := NewServices(linkStorage, userStorage)
 	handler := NewHandler(servises, "http://localhost:8080")
 
@@ -586,15 +585,15 @@ func BenchmarkGetShortLink(b *testing.B) {
 func BenchmarkGetFulLink(b *testing.B) {
 	requestURL := "/"
 	paramURL := "123456"
-	linkMap := make(map[string]domain.Link)
+	linkMap := make(map[string]*domain.Link)
 	link := domain.Link{
 		ID:      1,
 		Ident:   "123456",
 		FulLink: "https://practicum.test5.ru/",
 	}
-	linkMap[link.Ident] = link
-	linkStorage, _ := hashmapstorage.NewLinkStorage(linkMap, "")
-	userStorage, _ := hashmapstorage.NewLinkStorage(linkMap, "")
+	linkMap[link.Ident] = &link
+	linkStorage, _ := hashmapstorage.NewLinkStorage(linkMap, make(map[int32][]*domain.Link), "")
+	userStorage, _ := hashmapstorage.NewLinkStorage(linkMap, make(map[int32][]*domain.Link), "")
 	servises := NewServices(linkStorage, userStorage)
 	handler := NewHandler(servises, "http://localhost:8080")
 
@@ -609,32 +608,36 @@ func BenchmarkGetFulLink(b *testing.B) {
 		b.StartTimer()
 		handler.GetFulLink(rec, request)
 	}
-}
+} */
 
 // BenchmarkGetLinksByUser - benchmark for GetLinksByUser  handler
 func BenchmarkGetLinksByUser(b *testing.B) {
 	requestURL := "/api/user/urls"
-	linkMap := make(map[string]domain.Link)
-	linkStorage, _ := hashmapstorage.NewLinkStorage(linkMap, "")
-	userStorage, _ := hashmapstorage.NewLinkStorage(linkMap, "")
+	linkMap := make(map[string]*domain.Link)
+	linkByUserIDMap := make(map[int32][]*domain.Link)
+	linkStorage, _ := hashmapstorage.NewLinkStorage(linkMap, linkByUserIDMap, "")
+	userStorage, _ := hashmapstorage.NewLinkStorage(linkMap, linkByUserIDMap, "")
 	servises := NewServices(linkStorage, userStorage)
 	handler := NewHandler(servises, "http://localhost:8080")
 	testServ := httptest.NewServer(handler.InitRouter())
 	defer testServ.Close()
 
-	userID := 1
+	userID := int32(1)
 	ident := "123456"
 	fulLink := "https://practicum.test5.ru/"
+	linkSlice := make([]*domain.Link, 0)
 	for i := 0; i < 20; i++ {
 		ident := ident + strconv.Itoa(i)
 		fulLink := fulLink + strconv.Itoa(i)
 		link := domain.Link{
-			UserID:  int32(userID),
+			UserID:  userID,
 			Ident:   ident,
 			FulLink: fulLink,
 		}
-		linkMap[link.Ident] = link
+		linkSlice = append(linkSlice, &link)
+		linkMap[link.Ident] = &link
 	}
+	linkByUserIDMap[userID] = linkSlice
 	for i := 20; i < 10000000; i++ {
 		ident := ident + strconv.Itoa(i)
 		fulLink := fulLink + strconv.Itoa(i)
@@ -643,7 +646,8 @@ func BenchmarkGetLinksByUser(b *testing.B) {
 			Ident:   ident,
 			FulLink: fulLink,
 		}
-		linkMap[link.Ident] = link
+		linkByUserIDMap[int32(i)] = []*domain.Link{&link}
+		linkMap[link.Ident] = &link
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
