@@ -11,6 +11,7 @@ const (
 	userCTX             YSContext = "YSUserID"
 )
 
+// YSContext - type denoting the user ID in the context.
 type YSContext string
 
 func (h *Handler) userIdentity(next http.Handler) http.Handler {

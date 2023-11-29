@@ -1,5 +1,7 @@
+// The domain package contains a business entityes.
 package domain
 
+// Link entity.
 type Link struct {
 	ID          int32  `json:"uuid" db:"id"`
 	Ident       string `json:"short_url" db:"short_url"`

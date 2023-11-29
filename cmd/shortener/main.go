@@ -10,6 +10,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/jmoiron/sqlx"
+
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/configs"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/delivery/handlers"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/domain"
@@ -17,7 +19,6 @@ import (
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/service"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/storage/hashmapstorage"
 	"github.com/Aleksey-Andris/go-yandex-shortener/internal/app/storage/postgresstorage"
-	"github.com/jmoiron/sqlx"
 )
 
 func main() {
@@ -33,11 +34,11 @@ func main() {
 	var db *sqlx.DB
 	var err error
 	if flagConfigDB == "" {
-		linkStorage, err = hashmapstorage.NewLinkStorage(make(map[string]domain.Link), flagFileStoragePath)
+		linkStorage, err = hashmapstorage.NewLinkStorage(make(map[string]*domain.Link), make(map[int32][]*domain.Link), flagFileStoragePath)
 		if err != nil {
 			logger.Log().Fatal(err.Error())
 		}
-		userStorage, err = hashmapstorage.NewLinkStorage(make(map[string]domain.Link), flagFileStoragePath)
+		userStorage, err = hashmapstorage.NewLinkStorage(make(map[string]*domain.Link), make(map[int32][]*domain.Link), flagFileStoragePath)
 		if err != nil {
 			logger.Log().Fatal(err.Error())
 		}

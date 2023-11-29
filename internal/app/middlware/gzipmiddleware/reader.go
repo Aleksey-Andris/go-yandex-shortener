@@ -1,3 +1,4 @@
+// The gzipmiddleware package is designed middleware to perform request body decompression.
 package gzipmiddleware
 
 import (
@@ -28,10 +29,12 @@ func newCompressReader(r io.ReadCloser) (*compressReader, error) {
 	}, nil
 }
 
+// Read - replacement of the basic similar method, is reading gzip.
 func (c compressReader) Read(p []byte) (n int, err error) {
 	return c.zr.Read(p)
 }
 
+// Close - replacement of the basic similar method, is reading gzip, also close gzip - reader.
 func (c *compressReader) Close() error {
 	if err := c.r.Close(); err != nil {
 		return err
@@ -39,6 +42,7 @@ func (c *compressReader) Close() error {
 	return c.zr.Close()
 }
 
+// Decompress - middleware who can read gzip body.
 func Decompress(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		if isContentGzip(req) {
